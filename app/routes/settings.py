@@ -1,8 +1,9 @@
 import json
 import os
+import io
 from flask import (
     Blueprint, render_template, request, redirect, url_for,
-    flash, current_app,
+    flash, current_app, send_file,
 )
 from app.auth import login_required
 from app.services.bind_service import BindService
@@ -135,3 +136,70 @@ def bind_action():
         flash(f"{label} failed: {msg}", "danger")
 
     return redirect(url_for("settings.status"))
+
+
+@settings_bp.route("/logs/export/<log_name>")
+@login_required
+def export_log(log_name):
+    bs = BindService(current_app.config)
+    content = bs.read_log(log_name, tail=0)
+
+    buf = io.BytesIO()
+    buf.write(content.encode("utf-8"))
+    buf.seek(0)
+
+    safe_name = os.path.basename(log_name)
+    return send_file(
+        buf,
+        mimetype="text/plain",
+        as_attachment=True,
+        download_name=safe_name,
+    )
+
+
+@settings_bp.route("/config/<config_name>", methods=["GET", "POST"])
+@login_required
+def config_edit(config_name):
+    bs = BindService(current_app.config)
+    configs = bs.get_config_paths()
+
+    if config_name not in configs:
+        flash(f"Unknown config file: {config_name}", "danger")
+        return redirect(url_for("settings.status"))
+
+    filepath = configs[config_name]
+
+    if request.method == "POST":
+        raw_content = request.form.get("raw_content", "")
+        try:
+            bs.write_config_file(filepath, raw_content)
+            ok, msg = bs.reload()
+            if ok:
+                flash(f"{config_name} saved and BIND reloaded.", "success")
+            else:
+                flash(f"{config_name} saved but reload failed: {msg}", "warning")
+            return redirect(url_for("settings.config_edit", config_name=config_name))
+        except ValueError as e:
+            flash(str(e), "danger")
+            return render_template(
+                "settings/config_edit.html",
+                config_name=config_name,
+                raw_content=raw_content,
+                configs=configs,
+            )
+        except Exception as e:
+            flash(f"Error saving {config_name}: {e}", "danger")
+            return render_template(
+                "settings/config_edit.html",
+                config_name=config_name,
+                raw_content=raw_content,
+                configs=configs,
+            )
+
+    raw_content = bs.read_config_file(filepath)
+    return render_template(
+        "settings/config_edit.html",
+        config_name=config_name,
+        raw_content=raw_content,
+        configs=configs,
+    )

@@ -201,3 +201,66 @@ class BindService:
             return "".join(lines)
         except Exception as e:
             return f"Error reading log: {e}"
+        
+    # -- config file editing -------------------------------------------
+
+    def read_config_file(self, filepath):
+        """Read a BIND config file and return its contents."""
+        if not os.path.isfile(filepath):
+            return f"# File not found: {filepath}\n"
+        with open(filepath, "r") as f:
+            return f.read()
+
+    def write_config_file(self, filepath, content):
+        """
+        Write content to a BIND config file.
+        Creates a .bak backup before overwriting.
+        Validates with named-checkconf before committing.
+        """
+        # Backup
+        if os.path.isfile(filepath):
+            bak = filepath + ".bak"
+            with open(filepath, "r") as src:
+                original = src.read()
+            with open(bak, "w") as dst:
+                dst.write(original)
+
+        # Write new content
+        with open(filepath, "w") as f:
+            f.write(content)
+
+        # Validate — only for named.conf (full config check)
+        if filepath.endswith("named.conf"):
+            ok, msg = self.check_conf()
+            if not ok:
+                # Rollback from backup
+                if os.path.isfile(filepath + ".bak"):
+                    with open(filepath + ".bak", "r") as bak:
+                        rollback = bak.read()
+                    with open(filepath, "w") as f:
+                        f.write(rollback)
+                raise ValueError(f"named-checkconf failed (rolled back):\n{msg}")
+
+    def check_conf(self):
+        """Run named-checkconf and return (success, output)."""
+        try:
+            result = subprocess.run(
+                ["named-checkconf", "/etc/bind/named.conf"],
+                capture_output=True, text=True, timeout=10,
+            )
+            if result.returncode != 0:
+                return False, result.stderr.strip() or result.stdout.strip()
+            return True, "Configuration OK."
+        except FileNotFoundError:
+            return False, "named-checkconf not found."
+        except subprocess.TimeoutExpired:
+            return False, "named-checkconf timed out."
+        except Exception as e:
+            return False, str(e)
+
+    def get_config_paths(self):
+        """Return dict of editable config files and their paths."""
+        return {
+            "named.conf": "/etc/bind/named.conf",
+            "rndc-controls.conf": "/etc/bind/rndc-controls.conf",
+        }

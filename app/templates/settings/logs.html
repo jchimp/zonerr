@@ -5,7 +5,8 @@
     <h5 class="mb-0 fw-bold"><i class="bi bi-journal-text me-2"></i>BIND Logs</h5>
     <div class="d-flex gap-1">
         {% if active_log %}
-        <a href="{{ url_for('settings.logs', log_name=active_log, tail=tail) }}" class="btn btn-sm btn-outline-secondary">
+        <a href="{{ url_for('settings.logs', log_name=active_log, tail=tail) }}"
+        class="btn btn-sm btn-outline-secondary">
             <i class="bi bi-arrow-clockwise me-1"></i>Refresh
         </a>
         {% endif %}
@@ -44,6 +45,15 @@
                class="btn btn-sm {% if full %}btn-primary{% else %}btn-outline-secondary{% endif %}">
                 Full Log
             </a>
+            <span class="border-start mx-1"></span>
+            <button class="btn btn-sm btn-outline-info" id="copyBtn" title="Copy to clipboard">
+                <i class="bi bi-clipboard me-1"></i>Copy
+            </button>
+            <a href="{{ url_for('settings.export_log', log_name=active_log) }}"
+                class="btn btn-sm btn-outline-success"
+                title="Download log file">
+                <i class="bi bi-download me-1"></i>Export
+            </a>
         </div>
     </div>
     <div class="card-body p-0">
@@ -62,10 +72,47 @@
 {% endif %}
 
 <script>
-// Auto-scroll to bottom of log output
+// Auto-scroll to bottom
 document.addEventListener('DOMContentLoaded', function() {
     const el = document.getElementById('logOutput');
     if (el) el.scrollTop = el.scrollHeight;
+});
+
+// Copy to clipboard
+document.addEventListener('DOMContentLoaded', function() {
+    const btn = document.getElementById('copyBtn');
+    if (!btn) return;
+    btn.addEventListener('click', function() {
+        const el = document.getElementById('logOutput');
+        if (!el) return;
+        const text = el.textContent;
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(text).then(function() {
+                showCopied();
+            });
+        } else {
+            // Fallback for HTTP
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            showCopied();
+        }
+    });
+
+    function showCopied() {
+        const btn = document.getElementById('copyBtn');
+        btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Copied!';
+        btn.classList.replace('btn-outline-info', 'btn-success');
+        setTimeout(function() {
+            btn.innerHTML = '<i class="bi bi-clipboard me-1"></i>Copy';
+            btn.classList.replace('btn-success', 'btn-outline-info');
+        }, 2000);
+    }
 });
 </script>
 {% endblock %}

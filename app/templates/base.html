@@ -52,6 +52,11 @@
                         <i class="bi bi-journal-text me-2"></i>Logs
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a href="{{ url_for('settings.config_edit', config_name='named.conf') }}" class="nav-link {% if request.endpoint == 'settings.logs' %}active{% endif %}">
+                        <i class="bi bi-file-earmark-code me-2"></i>Config
+                    </a>
+                </li>
             </ul>
             <hr class="my-1">
             <div class="small text-muted px-2 pb-1">v1.0.0</div>
