@@ -33,17 +33,6 @@ cp .env.example .env
 docker compose -f docker-compose.local.yml up -d --build
 ```
 
-### Option 3: Development (No Docker)
-
-```bash
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env
-export $(cat .env | xargs)
-python run.py
-```
-
 ### Environment Variables
 
 | Variable              | Default                    | Description           |
