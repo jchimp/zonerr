@@ -1,4 +1,4 @@
-/* DNS Manager — Client-Side JavaScript */
+/* Zonerr — Client-Side JavaScript */
 
 (function() {
     const htmlEl = document.documentElement;

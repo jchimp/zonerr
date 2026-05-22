@@ -61,7 +61,7 @@ services:
         echo 'include \"/etc/bind/logging.conf\";' >> /etc/bind/named.conf;
       fi;
       if [ ! -f /etc/bind/named.conf.local ]; then
-        echo '// Managed by DNS Manager' > /etc/bind/named.conf.local;
+        echo '// Managed by Zonerr' > /etc/bind/named.conf.local;
       fi;
       mkdir -p /etc/bind/zones /var/log/bind;
       chown -R bind:bind /etc/bind/zones /var/log/bind;

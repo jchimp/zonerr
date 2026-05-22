@@ -26,7 +26,7 @@ class BindService:
         if os.path.exists(self.named_conf_local):
             with open(self.named_conf_local, "r") as f:
                 return f.read()
-        return "// Managed by DNS Manager\n"
+        return "// Managed by Zonerr\n"
 
     def _write_config(self, content):
         os.makedirs(os.path.dirname(self.named_conf_local), exist_ok=True)
@@ -54,7 +54,7 @@ class BindService:
 
     def _remove_zone_block(self, content, zone_name):
         """Remove a zone block from the config string."""
-        pattern = r'zone\s+"' + re.escape(zone_name) + r'"\s*\{[^}]*\};\s*'
+        pattern = r'zone\s+"' + re.escape(zone_name) + r'"\s*\{[^}]*(?:\{[^}]*\}[^}]*)*\};\s*'
         return re.sub(pattern, "", content, flags=re.DOTALL)
 
     def _build_zone_block(self, zone_name, replication=None):
@@ -107,7 +107,7 @@ class BindService:
         zone_pattern = r'zone\s+"([^"]+)"\s*\{'
         zone_names = re.findall(zone_pattern, content)
 
-        new_content = "// Managed by DNS Manager — do not edit manually\n"
+        new_content = "// Managed by Zonerr — do not edit manually\n"
         for zname in zone_names:
             block = self._build_zone_block(zname, config)
             new_content += "\n" + block + "\n"
