@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Add Record — {{ zone.name }} — DNS Manager{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center mb-3">
+    <a href="{{ url_for('zones.view_zone', zone_name=zone.name) }}" class="btn btn-sm btn-outline-secondary me-2"><i class="bi bi-arrow-left"></i></a>
+    <h5 class="mb-0 fw-bold">Add Record — <span class="font-monospace">{{ zone.name }}</span></h5>
+</div>
+<div class="card border-0" style="max-width: 600px;">
+    <div class="card-body p-3">
+        <form method="POST">
+            <div class="mb-2">
+                <label for="rtype" class="form-label small mb-1">Record Type</label>
+                <select class="form-select form-select-sm" id="rtype" name="rtype" onchange="toggleRecordFields()">
+                    {% for rt in record_types %}<option value="{{ rt }}">{{ rt }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="mb-2">
+                <label for="name" class="form-label small mb-1">Name</label>
+                <input type="text" class="form-control form-control-sm font-monospace" id="name" name="name" required placeholder="@ or hostname">
+                <div class="form-text small">Use @ for zone apex, or enter a hostname</div>
+            </div>
+            <div class="mb-2">
+                <label for="ttl" class="form-label small mb-1">TTL (seconds)</label>
+                <input type="number" class="form-control form-control-sm" id="ttl" name="ttl" value="3600" min="60">
+            </div>
+            <div class="mb-2" id="valueGroup">
+                <label for="value" class="form-label small mb-1" id="valueLabel">Value</label>
+                <input type="text" class="form-control form-control-sm font-monospace" id="value" name="value" required>
+                <div class="form-text small" id="valueHelp">IP address for A records</div>
+            </div>
+            <div id="srvFields" style="display:none;">
+                <div class="row g-2 mb-2">
+                    <div class="col-4">
+                        <label for="priority" class="form-label small mb-1">Priority</label>
+                        <input type="number" class="form-control form-control-sm" id="priority" name="priority" value="0" min="0">
+                    </div>
+                    <div class="col-4">
+                        <label for="weight" class="form-label small mb-1">Weight</label>
+                        <input type="number" class="form-control form-control-sm" id="weight" name="weight" value="0" min="0">
+                    </div>
+                    <div class="col-4">
+                        <label for="port" class="form-label small mb-1">Port</label>
+                        <input type="number" class="form-control form-control-sm" id="port" name="port" value="0" min="0">
+                    </div>
+                </div>
+            </div>
+            <div id="mxFields" style="display:none;">
+                <div class="mb-2">
+                    <label for="mx_priority" class="form-label small mb-1">MX Priority</label>
+                    <input type="number" class="form-control form-control-sm" id="mx_priority" name="mx_priority" value="10" min="0">
+                </div>
+            </div>
+            <div class="mb-3" id="ptrGroup" style="display:block;">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="create_ptr" name="create_ptr">
+                    <label class="form-check-label small" for="create_ptr">Create matching PTR record</label>
+                    {% if reverse_zones %}
+                    <div class="form-text small text-success">
+                        <i class="bi bi-check-circle me-1"></i>Available reverse zones: {{ reverse_zones | join(', ') }}
+                    </div>
+                    {% else %}
+                    <div class="form-text small text-warning">
+                        <i class="bi bi-exclamation-triangle me-1"></i>No reverse zones exist. PTR will not be created.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-check-circle me-1"></i>Add Record</button>
+                <a href="{{ url_for('zones.view_zone', zone_name=zone.name) }}" class="btn btn-outline-secondary btn-sm">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+<script>
+function toggleRecordFields() {
+    const rtype = document.getElementById('rtype').value;
+    document.getElementById('srvFields').style.display = 'none';
+    document.getElementById('mxFields').style.display = 'none';
+    document.getElementById('ptrGroup').style.display = 'none';
+    const vl = document.getElementById('valueLabel');
+    const vh = document.getElementById('valueHelp');
+    switch(rtype) {
+        case 'A': vl.textContent='IPv4 Address'; vh.textContent='e.g., 192.168.1.10'; document.getElementById('ptrGroup').style.display='block'; break;
+        case 'AAAA': vl.textContent='IPv6 Address'; vh.textContent='e.g., 2001:db8::1'; break;
+        case 'CNAME': vl.textContent='Target (FQDN)'; vh.textContent='e.g., server1.example.com.'; break;
+        case 'TXT': vl.textContent='Text Value'; vh.textContent='e.g., v=spf1 include:example.com ~all'; break;
+        case 'SRV': vl.textContent='Target Host'; vh.textContent='e.g., server1.example.com.'; document.getElementById('srvFields').style.display='block'; break;
+        case 'MX': vl.textContent='Mail Server (FQDN)'; vh.textContent='e.g., mail.example.com.'; document.getElementById('mxFields').style.display='block'; break;
+        case 'NS': vl.textContent='Nameserver (FQDN)'; vh.textContent='e.g., ns2.example.com.'; break;
+        case 'PTR': vl.textContent='Target Host (FQDN)'; vh.textContent='e.g., server1.example.com.'; break;
+    }
+}
+document.addEventListener('DOMContentLoaded', toggleRecordFields);
+</script>
+{% endblock %}

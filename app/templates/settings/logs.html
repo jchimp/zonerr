@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}BIND Logs — DNS Manager{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <h5 class="mb-0 fw-bold"><i class="bi bi-journal-text me-2"></i>BIND Logs</h5>
+    <div class="d-flex gap-1">
+        {% if active_log %}
+        <a href="{{ url_for('settings.logs', log_name=active_log, tail=tail) }}" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+{% if log_files %}
+<div class="d-flex gap-2 mb-3">
+    {% for lf in log_files %}
+    <a href="{{ url_for('settings.logs', log_name=lf.name) }}"
+       class="btn btn-sm {% if lf.name == active_log %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+        <i class="bi bi-file-text me-1"></i>{{ lf.name }}
+        <span class="badge bg-dark ms-1">{{ (lf.size / 1024) | round(1) }} KB</span>
+    </a>
+    {% endfor %}
+</div>
+
+{% if active_log %}
+<div class="card border-0 mb-2">
+    <div class="card-header py-2 px-3 d-flex align-items-center justify-content-between">
+        <h6 class="mb-0 fw-semibold font-monospace">{{ active_log }}</h6>
+        <div class="d-flex gap-1">
+            <a href="{{ url_for('settings.logs', log_name=active_log, tail=50) }}"
+               class="btn btn-sm {% if tail == 50 and not full %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+                Last 50
+            </a>
+            <a href="{{ url_for('settings.logs', log_name=active_log, tail=200) }}"
+               class="btn btn-sm {% if tail == 200 and not full %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+                Last 200
+            </a>
+            <a href="{{ url_for('settings.logs', log_name=active_log, tail=500) }}"
+               class="btn btn-sm {% if tail == 500 and not full %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+                Last 500
+            </a>
+            <a href="{{ url_for('settings.logs', log_name=active_log, full=true) }}"
+               class="btn btn-sm {% if full %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+                Full Log
+            </a>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <pre class="mb-0 small font-monospace status-output p-3" id="logOutput"
+             style="max-height: 70vh; overflow-y: auto;">{{ content }}</pre>
+    </div>
+</div>
+{% endif %}
+
+{% else %}
+<div class="text-center text-muted mt-5">
+    <i class="bi bi-journal-x fs-1"></i>
+    <p class="mt-2">No log files found. BIND may not have started logging yet.</p>
+    <p class="small">Logs are expected at <code>/var/log/bind/</code></p>
+</div>
+{% endif %}
+
+<script>
+// Auto-scroll to bottom of log output
+document.addEventListener('DOMContentLoaded', function() {
+    const el = document.getElementById('logOutput');
+    if (el) el.scrollTop = el.scrollHeight;
+});
+</script>
+{% endblock %}

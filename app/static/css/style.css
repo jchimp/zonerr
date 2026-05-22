@@ -1,0 +1,149 @@
+/* DNS Manager — Compact Sysadmin Dashboard Styles */
+
+:root {
+    --sidebar-width: 210px;
+    --topbar-height: 42px;
+    --font-size-sm: 0.8rem;
+    --font-size-xs: 0.72rem;
+    --purple: #7c3aed;
+    --purple-bg: rgba(124, 58, 237, 0.12);
+}
+
+body {
+    font-size: var(--font-size-sm);
+    overflow-x: hidden;
+}
+
+#sidebar {
+    width: var(--sidebar-width);
+    min-height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1040;
+    transition: transform 0.2s ease;
+}
+
+[data-bs-theme="dark"] #sidebar {
+    background: #16191e;
+    border-right: 1px solid #2a2e35;
+}
+
+[data-bs-theme="light"] #sidebar {
+    background: #f0f2f5;
+    border-right: 1px solid #dee2e6;
+}
+
+.sidebar-brand { font-size: 0.95rem; }
+[data-bs-theme="dark"] .sidebar-brand { color: #e2e8f0; }
+[data-bs-theme="light"] .sidebar-brand { color: #1a1a2e; }
+
+#sidebar .nav-link {
+    font-size: var(--font-size-sm);
+    padding: 0.3rem 0.6rem;
+    border-radius: 0.375rem;
+    color: inherit;
+    transition: background 0.15s;
+}
+
+#sidebar .nav-link:hover { background: rgba(255,255,255,0.06); }
+[data-bs-theme="light"] #sidebar .nav-link:hover { background: rgba(0,0,0,0.05); }
+#sidebar .nav-link.active { background: var(--bs-primary); color: #fff; }
+
+#page-content {
+    margin-left: var(--sidebar-width);
+    min-height: 100vh;
+}
+
+.topbar { height: var(--topbar-height); }
+[data-bs-theme="dark"] .topbar { background: #1a1d23; }
+[data-bs-theme="light"] .topbar { background: #fff; }
+
+.dns-table { font-size: var(--font-size-sm); }
+
+.dns-table th {
+    font-size: var(--font-size-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 600;
+    padding: 0.4rem 0.5rem;
+    white-space: nowrap;
+}
+
+.dns-table td {
+    padding: 0.3rem 0.5rem;
+    vertical-align: middle;
+}
+
+.badge {
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    padding: 0.2em 0.5em;
+    letter-spacing: 0.03em;
+}
+
+.record-type-a      { background: #16a34a; color: #fff; }
+.record-type-aaaa   { background: #0d9488; color: #fff; }
+.record-type-cname  { background: #ea580c; color: #fff; }
+.record-type-txt    { background: #0891b2; color: #fff; }
+.record-type-srv    { background: #d97706; color: #fff; }
+.record-type-mx     { background: #db2777; color: #fff; }
+.record-type-ns     { background: #6b7280; color: #fff; }
+.record-type-ptr    { background: var(--purple); color: #fff; }
+.record-type-soa    { background: #374151; color: #fff; }
+
+.bg-purple { background-color: var(--purple) !important; color: #fff; }
+.text-purple { color: var(--purple) !important; }
+
+.stat-card { transition: transform 0.15s; }
+.stat-card:hover { transform: translateY(-1px); }
+[data-bs-theme="dark"] .stat-card { background: #1e2128; }
+[data-bs-theme="light"] .stat-card { background: #f8f9fa; }
+
+.stat-icon {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+[data-bs-theme="dark"] .card { background: #1e2128; border-color: #2a2e35; }
+[data-bs-theme="dark"] .card-header { background: #22262e; border-bottom: 1px solid #2a2e35; }
+
+.login-bg { background: linear-gradient(135deg, #0f1117 0%, #1a1d2e 100%); }
+[data-bs-theme="light"] .login-bg { background: linear-gradient(135deg, #e8ecf1 0%, #f8f9fa 100%); }
+.login-card { border: none; }
+[data-bs-theme="dark"] .login-card { background: #1e2128; }
+
+.status-output {
+    white-space: pre-wrap;
+    word-break: break-all;
+    padding: 0.75rem;
+    border-radius: 0.375rem;
+    line-height: 1.6;
+}
+[data-bs-theme="dark"] .status-output { background: #14161b; color: #a3e635; }
+[data-bs-theme="light"] .status-output { background: #f1f5f9; color: #1e293b; }
+
+.alert { font-size: var(--font-size-sm); }
+.btn-close-sm { font-size: 0.55rem; }
+
+@media (max-width: 767.98px) {
+    #sidebar { transform: translateX(-100%); }
+    #sidebar.show { transform: translateX(0); }
+    #page-content { margin-left: 0; }
+}
+
+.font-monospace {
+    font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace !important;
+    font-size: var(--font-size-sm);
+}
+
+body, .card, .sidebar, .topbar, .nav-link, .badge, .status-output {
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.form-label { font-weight: 500; }
+.form-text { font-size: var(--font-size-xs); }
+.form-control-sm, .form-select-sm { font-size: var(--font-size-sm); }

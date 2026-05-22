@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Edit Record — {{ zone.name }} — DNS Manager{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center mb-3">
+    <a href="{{ url_for('zones.view_zone', zone_name=zone.name) }}" class="btn btn-sm btn-outline-secondary me-2"><i class="bi bi-arrow-left"></i></a>
+    <h5 class="mb-0 fw-bold">Edit Record — <span class="font-monospace">{{ zone.name }}</span></h5>
+</div>
+<div class="card border-0" style="max-width: 600px;">
+    <div class="card-body p-3">
+        <form method="POST">
+            <div class="mb-2">
+                <label class="form-label small mb-1">Record Type</label>
+                <input type="text" class="form-control form-control-sm font-monospace" value="{{ record.type }}" readonly disabled>
+            </div>
+            <div class="mb-2">
+                <label for="name" class="form-label small mb-1">Name</label>
+                <input type="text" class="form-control form-control-sm font-monospace" id="name" name="name" value="{{ record.name }}" required>
+            </div>
+            <div class="mb-2">
+                <label for="ttl" class="form-label small mb-1">TTL (seconds)</label>
+                <input type="number" class="form-control form-control-sm" id="ttl" name="ttl" value="{{ record.ttl }}" min="60">
+            </div>
+            {% if record.type == 'SRV' %}
+            <div class="row g-2 mb-2">
+                <div class="col-4">
+                    <label for="priority" class="form-label small mb-1">Priority</label>
+                    <input type="number" class="form-control form-control-sm" id="priority" name="priority" value="{{ record.priority | default('0') }}" min="0">
+                </div>
+                <div class="col-4">
+                    <label for="weight" class="form-label small mb-1">Weight</label>
+                    <input type="number" class="form-control form-control-sm" id="weight" name="weight" value="{{ record.weight | default('0') }}" min="0">
+                </div>
+                <div class="col-4">
+                    <label for="port" class="form-label small mb-1">Port</label>
+                    <input type="number" class="form-control form-control-sm" id="port" name="port" value="{{ record.port | default('0') }}" min="0">
+                </div>
+            </div>
+            <div class="mb-2">
+                <label for="value" class="form-label small mb-1">Target Host</label>
+                <input type="text" class="form-control form-control-sm font-monospace" id="value" name="value" value="{{ record.target | default('') }}" required>
+            </div>
+            {% elif record.type == 'MX' %}
+            <div class="mb-2">
+                <label for="mx_priority" class="form-label small mb-1">MX Priority</label>
+                <input type="number" class="form-control form-control-sm" id="mx_priority" name="mx_priority" value="{{ record.mx_priority | default('10') }}" min="0">
+            </div>
+            <div class="mb-2">
+                <label for="value" class="form-label small mb-1">Mail Server</label>
+                <input type="text" class="form-control form-control-sm font-monospace" id="value" name="value" value="{{ record.mx_target | default('') }}" required>
+            </div>
+            {% else %}
+            <div class="mb-2">
+                <label for="value" class="form-label small mb-1">Value</label>
+                <input type="text" class="form-control form-control-sm font-monospace" id="value" name="value" value="{{ record.value }}" required>
+            </div>
+            {% endif %}
+            <div class="d-flex gap-2 mt-3">
+                <button type="submit" class="btn btn-warning btn-sm"><i class="bi bi-check-circle me-1"></i>Update Record</button>
+                <a href="{{ url_for('zones.view_zone', zone_name=zone.name) }}" class="btn btn-outline-secondary btn-sm">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

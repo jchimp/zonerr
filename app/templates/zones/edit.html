@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Edit {{ zone.name }} — DNS Manager{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center mb-3">
+    <a href="{{ url_for('zones.view_zone', zone_name=zone.name) }}" class="btn btn-sm btn-outline-secondary me-2"><i class="bi bi-arrow-left"></i></a>
+    <h5 class="mb-0 fw-bold">Edit SOA — <span class="font-monospace">{{ zone.name }}</span></h5>
+</div>
+<div class="card border-0" style="max-width: 600px;">
+    <div class="card-body p-3">
+        <form method="POST">
+            <div class="mb-2">
+                <label for="soa_ns" class="form-label small mb-1">Primary Nameserver</label>
+                <input type="text" class="form-control form-control-sm font-monospace" id="soa_ns" name="soa_ns" value="{{ zone.soa_ns }}" required>
+            </div>
+            <div class="mb-2">
+                <label for="soa_email" class="form-label small mb-1">SOA Email</label>
+                <input type="text" class="form-control form-control-sm font-monospace" id="soa_email" name="soa_email" value="{{ zone.soa_email }}" required>
+            </div>
+            <div class="mb-3">
+                <label for="default_ttl" class="form-label small mb-1">Default TTL (seconds)</label>
+                <input type="number" class="form-control form-control-sm" id="default_ttl" name="default_ttl" value="{{ zone.default_ttl }}" min="60" required>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-warning btn-sm"><i class="bi bi-check-circle me-1"></i>Update SOA</button>
+                <a href="{{ url_for('zones.view_zone', zone_name=zone.name) }}" class="btn btn-outline-secondary btn-sm">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

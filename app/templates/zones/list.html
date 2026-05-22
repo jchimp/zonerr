@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Zones — DNS Manager{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <h5 class="mb-0 fw-bold"><i class="bi bi-globe me-2"></i>Zones</h5>
+    <a href="{{ url_for('zones.create_zone') }}" class="btn btn-primary btn-sm">
+        <i class="bi bi-plus-circle me-1"></i>New Zone
+    </a>
+</div>
+{% if zones %}
+<div class="card border-0">
+    <div class="table-responsive">
+        <table class="table table-hover table-sm mb-0 dns-table">
+            <thead><tr><th>Zone Name</th><th>Type</th><th>Records</th><th class="text-end">Actions</th></tr></thead>
+            <tbody>
+                {% for zone in zones %}
+                <tr>
+                    <td class="font-monospace">
+                        <a href="{{ url_for('zones.view_zone', zone_name=zone.name) }}" class="text-decoration-none">{{ zone.name }}</a>
+                    </td>
+                    <td>
+                        {% if zone.type == 'forward' %}<span class="badge bg-primary bg-opacity-75">Forward</span>
+                        {% else %}<span class="badge bg-purple">Reverse</span>{% endif %}
+                    </td>
+                    <td>{{ zone.record_count }}</td>
+                    <td class="text-end">
+                        <div class="btn-group btn-group-sm">
+                            <a href="{{ url_for('zones.view_zone', zone_name=zone.name) }}" class="btn btn-outline-primary py-0 px-1" title="View"><i class="bi bi-eye"></i></a>
+                            <a href="{{ url_for('zones.edit_zone', zone_name=zone.name) }}" class="btn btn-outline-warning py-0 px-1" title="Edit SOA"><i class="bi bi-pencil"></i></a>
+                            <form method="POST" action="{{ url_for('zones.delete_zone', zone_name=zone.name) }}" class="d-inline" onsubmit="return confirmDelete('zone', '{{ zone.name }}')">
+                                <button type="submit" class="btn btn-outline-danger py-0 px-1" title="Delete"><i class="bi bi-trash"></i></button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="text-center text-muted mt-5">
+    <i class="bi bi-database-x fs-1"></i>
+    <p class="mt-2">No zones configured yet.</p>
+</div>
+{% endif %}
+{% endblock %}

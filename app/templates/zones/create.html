@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Create Zone — DNS Manager{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center mb-3">
+    <a href="{{ url_for('zones.list_zones') }}" class="btn btn-sm btn-outline-secondary me-2"><i class="bi bi-arrow-left"></i></a>
+    <h5 class="mb-0 fw-bold"><i class="bi bi-plus-circle me-2"></i>Create Zone</h5>
+</div>
+<div class="card border-0" style="max-width: 600px;">
+    <div class="card-body p-3">
+        <form method="POST">
+            <div class="mb-2">
+                <label for="zone_type" class="form-label small mb-1">Zone Type</label>
+                <select class="form-select form-select-sm" id="zone_type" name="zone_type" onchange="updateZoneHelp()">
+                    <option value="forward">Forward Lookup Zone</option>
+                    <option value="reverse">Reverse Lookup Zone</option>
+                </select>
+            </div>
+            <div class="mb-2">
+                <label for="zone_name" class="form-label small mb-1">Zone Name</label>
+                <input type="text" class="form-control form-control-sm font-monospace" id="zone_name" name="zone_name" required placeholder="example.com">
+                <div class="form-text small" id="zoneHelp">Enter the domain name (e.g., example.com, lab.local)</div>
+            </div>
+            <div class="mb-2">
+                <label for="soa_ns" class="form-label small mb-1">Primary Nameserver</label>
+                <input type="text" class="form-control form-control-sm font-monospace" id="soa_ns" name="soa_ns" placeholder="ns1">
+                <div class="form-text small">Short hostname for the NS record (e.g., ns1). Will be expanded to ns1.&lt;zone&gt;.</div>
+            </div>
+            <div class="mb-2">
+                <label for="ns_ip" class="form-label small mb-1">Nameserver IP Address</label>
+                <input type="text" class="form-control form-control-sm font-monospace" id="ns_ip" name="ns_ip" placeholder="10.0.0.1">
+                <div class="form-text small">
+                    <i class="bi bi-info-circle me-1"></i>Creates a glue A record for the nameserver. Use this server's IP address.
+                </div>
+            </div>
+            <div class="mb-2">
+                <label for="soa_email" class="form-label small mb-1">SOA Email</label>
+                <input type="text" class="form-control form-control-sm font-monospace" id="soa_email" name="soa_email" placeholder="admin.example.com">
+                <div class="form-text small">Admin email in DNS format (admin.example.com = admin@example.com)</div>
+            </div>
+            <div class="mb-3">
+                <label for="default_ttl" class="form-label small mb-1">Default TTL (seconds)</label>
+                <input type="number" class="form-control form-control-sm" id="default_ttl" name="default_ttl" value="86400" min="60">
+            </div>
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-check-circle me-1"></i>Create Zone</button>
+                <a href="{{ url_for('zones.list_zones') }}" class="btn btn-outline-secondary btn-sm">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+<script>
+function updateZoneHelp() {
+    const type = document.getElementById('zone_type').value;
+    const help = document.getElementById('zoneHelp');
+    const nameInput = document.getElementById('zone_name');
+    if (type === 'reverse') {
+        help.textContent = 'Enter in reverse ARPA format (e.g., 1.168.192.in-addr.arpa for 192.168.1.0/24)';
+        nameInput.placeholder = '1.168.192.in-addr.arpa';
+    } else {
+        help.textContent = 'Enter the domain name (e.g., example.com, lab.local)';
+        nameInput.placeholder = 'example.com';
+    }
+}
+</script>
+{% endblock %}

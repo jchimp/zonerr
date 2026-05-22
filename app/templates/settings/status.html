@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}BIND Status — DNS Manager{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <h5 class="mb-0 fw-bold"><i class="bi bi-activity me-2"></i>BIND Status</h5>
+    <a href="{{ url_for('settings.status') }}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+    </a>
+</div>
+<div class="card border-0">
+    <div class="card-body p-3">
+        <pre class="mb-0 small font-monospace status-output">{{ status }}</pre>
+    </div>
+</div>
+{% endblock %}

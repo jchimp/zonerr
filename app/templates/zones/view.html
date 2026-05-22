@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}{{ zone.name }} — DNS Manager{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-2">
+    <div class="d-flex align-items-center">
+        <a href="{{ url_for('zones.list_zones') }}" class="btn btn-sm btn-outline-secondary me-2"><i class="bi bi-arrow-left"></i></a>
+        <h5 class="mb-0 fw-bold font-monospace">{{ zone.name }}</h5>
+        {% if zone.type == 'forward' %}<span class="badge bg-primary bg-opacity-75 ms-2">Forward</span>
+        {% else %}<span class="badge bg-purple ms-2">Reverse</span>{% endif %}
+    </div>
+    <div class="d-flex gap-1">
+        <a href="{{ url_for('records.add_record', zone_name=zone.name) }}" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-circle me-1"></i>Add Record
+        </a>
+        <a href="{{ url_for('zones.edit_zone', zone_name=zone.name) }}" class="btn btn-outline-warning btn-sm">
+            <i class="bi bi-pencil me-1"></i>Edit SOA
+        </a>
+        <a href="{{ url_for('zones.raw_edit', zone_name=zone.name) }}" class="btn btn-outline-info btn-sm">
+            <i class="bi bi-code-square me-1"></i>Raw Edit
+        </a>
+        <form method="POST" action="{{ url_for('zones.delete_zone', zone_name=zone.name) }}" class="d-inline" onsubmit="return confirmDelete('zone', '{{ zone.name }}')">
+            <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash me-1"></i>Delete Zone</button>
+        </form>
+    </div>
+    <!--
+    <div class="d-flex gap-1">
+        <a href="{{ url_for('records.add_record', zone_name=zone.name) }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-circle me-1"></i>Add Record</a>
+        <a href="{{ url_for('zones.edit_zone', zone_name=zone.name) }}" class="btn btn-outline-warning btn-sm"><i class="bi bi-pencil me-1"></i>Edit SOA</a>
+        <form method="POST" action="{{ url_for('zones.delete_zone', zone_name=zone.name) }}" class="d-inline" onsubmit="return confirmDelete('zone', '{{ zone.name }}')">
+            <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash me-1"></i>Delete Zone</button>
+        </form>
+    </div>
+    -->
+</div>
+<div class="card border-0 mb-3">
+    <div class="card-body p-2">
+        <div class="row g-2 small">
+            <div class="col-auto"><span class="text-muted">NS:</span> <span class="font-monospace">{{ zone.soa_ns }}</span></div>
+            <div class="col-auto"><span class="text-muted">Email:</span> <span class="font-monospace">{{ zone.soa_email }}</span></div>
+            <div class="col-auto"><span class="text-muted">Serial:</span> <span class="font-monospace">{{ zone.serial }}</span></div>
+            <div class="col-auto"><span class="text-muted">TTL:</span> <span class="font-monospace">{{ zone.default_ttl }}</span></div>
+        </div>
+    </div>
+</div>
+{% if records %}
+<div class="card border-0">
+    <div class="card-header py-2 px-3 d-flex align-items-center justify-content-between">
+        <h6 class="mb-0 fw-semibold"><i class="bi bi-list-ul me-2"></i>Records ({{ records|length }})</h6>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover table-sm mb-0 dns-table">
+            <thead><tr><th>Name</th><th>TTL</th><th>Type</th><th>Value</th><th class="text-end">Actions</th></tr></thead>
+            <tbody>
+                {% for record in records %}
+                <tr>
+                    <td class="font-monospace">{{ record.name }}</td>
+                    <td class="font-monospace">{{ record.ttl }}</td>
+                    <td><span class="badge record-type-{{ record.type | lower }}">{{ record.type }}</span></td>
+                    <td class="font-monospace text-break">
+                        {% if record.type == 'SRV' and record.priority is defined %}
+                            <span class="text-muted">pri:</span>{{ record.priority }}
+                            <span class="text-muted">w:</span>{{ record.weight }}
+                            <span class="text-muted">port:</span>{{ record.port }}
+                            <span class="text-muted">target:</span>{{ record.target }}
+                        {% elif record.type == 'MX' and record.mx_priority is defined %}
+                            <span class="text-muted">pri:</span>{{ record.mx_priority }} {{ record.mx_target }}
+                        {% else %}
+                            {{ record.value }}
+                        {% endif %}
+                    </td>
+                    <td class="text-end text-nowrap">
+                        {% if record.type != 'SOA' %}
+                        <div class="btn-group btn-group-sm">
+                            <a href="{{ url_for('records.edit_record', zone_name=zone.name, record_index=loop.index0) }}" class="btn btn-outline-warning py-0 px-1" title="Edit"><i class="bi bi-pencil"></i></a>
+                            <form method="POST" action="{{ url_for('records.delete_record', zone_name=zone.name, record_index=loop.index0) }}" class="d-inline" onsubmit="return confirmDelete('record', '{{ record.name }} {{ record.type }}')">
+                                <button type="submit" class="btn btn-outline-danger py-0 px-1" title="Delete"><i class="bi bi-trash"></i></button>
+                            </form>
+                        </div>
+                        {% else %}
+                        <span class="text-muted small">—</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="text-center text-muted mt-4">
+    <p>No records yet. <a href="{{ url_for('records.add_record', zone_name=zone.name) }}">Add the first record</a>.</p>
+</div>
+{% endif %}
+{% endblock %}

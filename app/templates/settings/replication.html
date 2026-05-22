@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Replication — DNS Manager{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center mb-3">
+    <h5 class="mb-0 fw-bold"><i class="bi bi-arrow-left-right me-2"></i>Replication Settings</h5>
+</div>
+<div class="card border-0" style="max-width: 600px;">
+    <div class="card-body p-3">
+        <p class="small text-muted mb-3">Configure master/slave DNS replication. These settings apply globally to all zones in named.conf.local.</p>
+        <form method="POST">
+            <div class="mb-2">
+                <label for="role" class="form-label small mb-1">Server Role</label>
+                <select class="form-select form-select-sm" id="role" name="role" onchange="toggleReplicationFields()">
+                    <option value="standalone" {% if config.role == 'standalone' %}selected{% endif %}>Standalone</option>
+                    <option value="master" {% if config.role == 'master' %}selected{% endif %}>Master</option>
+                    <option value="slave" {% if config.role == 'slave' %}selected{% endif %}>Slave</option>
+                </select>
+            </div>
+            <div id="masterFields" style="display:none;">
+                <div class="mb-2">
+                    <label for="allow_transfer" class="form-label small mb-1">Allow Transfer (one IP per line)</label>
+                    <textarea class="form-control form-control-sm font-monospace" id="allow_transfer" name="allow_transfer" rows="3" placeholder="192.168.1.2&#10;10.0.0.2">{{ config.allow_transfer | join('\n') }}</textarea>
+                    <div class="form-text small">IPs of slave servers allowed to transfer zones</div>
+                </div>
+                <div class="mb-2">
+                    <label for="also_notify" class="form-label small mb-1">Also Notify (one IP per line)</label>
+                    <textarea class="form-control form-control-sm font-monospace" id="also_notify" name="also_notify" rows="3" placeholder="192.168.1.2">{{ config.also_notify | join('\n') }}</textarea>
+                    <div class="form-text small">IPs to notify on zone changes (NOTIFY messages)</div>
+                </div>
+            </div>
+            <div id="slaveFields" style="display:none;">
+                <div class="mb-2">
+                    <label for="masters" class="form-label small mb-1">Master Servers (one IP per line)</label>
+                    <textarea class="form-control form-control-sm font-monospace" id="masters" name="masters" rows="3" placeholder="192.168.1.1">{{ config.masters | join('\n') }}</textarea>
+                    <div class="form-text small">IPs of master DNS servers to pull zones from</div>
+                </div>
+            </div>
+            <div class="d-flex gap-2 mt-3">
+                <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-check-circle me-1"></i>Save &amp; Apply</button>
+            </div>
+        </form>
+    </div>
+</div>
+<script>
+function toggleReplicationFields() {
+    const role = document.getElementById('role').value;
+    document.getElementById('masterFields').style.display = (role === 'master') ? 'block' : 'none';
+    document.getElementById('slaveFields').style.display = (role === 'slave') ? 'block' : 'none';
+}
+document.addEventListener('DOMContentLoaded', toggleReplicationFields);
+</script>
+{% endblock %}
