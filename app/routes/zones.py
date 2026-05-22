@@ -1,3 +1,5 @@
+import dns.exception
+
 from flask import (
     Blueprint, render_template, request, redirect, url_for,
     flash, current_app,
@@ -5,6 +7,7 @@ from flask import (
 from app.auth import login_required
 from app.services.zone_service import ZoneService
 from app.services.bind_service import BindService
+
 
 zones_bp = Blueprint("zones", __name__)
 
@@ -38,13 +41,29 @@ def create_zone():
         try:
             zs.create_zone(zone_name, zone_type, soa_ns, soa_email, int(default_ttl), ns_ip)
             bs.add_zone_to_config(zone_name, zone_type)
-            bs.reload()
+
+            ok, msg = bs.reload()
+            if not ok:
+                raise RuntimeError(f"rndc reload failed: {msg}")
+
             flash(f"Zone '{zone_name}' created successfully.", "success")
             return redirect(url_for("zones.view_zone", zone_name=zone_name))
+
         except Exception as e:
+            # rollback best-effort
+            try:
+                zs.delete_zone(zone_name)
+            except Exception:
+                pass
+            try:
+                bs.remove_zone_from_config(zone_name)
+            except Exception:
+                pass
+
             flash(f"Error creating zone: {e}", "danger")
 
     return render_template("zones/create.html")
+
 
 @zones_bp.route("/<zone_name>")
 @login_required
@@ -56,6 +75,12 @@ def view_zone(zone_name):
     except FileNotFoundError:
         flash(f"Zone '{zone_name}' not found.", "danger")
         return redirect(url_for("zones.list_zones"))
+    except Exception as e:
+        flash(f"Zone file exists but could not be parsed: {e}", "danger")
+        # Still show meta; records empty
+        zone_meta = zs.get_zone_meta(zone_name)
+        return render_template("zones/view.html", zone=zone_meta, records=[])
+
     return render_template("zones/view.html", zone=zone_meta, records=records)
 
 

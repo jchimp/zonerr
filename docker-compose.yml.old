@@ -1,7 +1,7 @@
 services:
-  zonerr:
+  dns-manager:
     build: .
-    container_name: zonerr
+    container_name: dns-manager
     restart: unless-stopped
     ports:
       - "5000:5000"
@@ -32,7 +32,7 @@ services:
 
   bind:
     image: ubuntu/bind9:latest
-    container_name: zonerr-bind
+    container_name: dns-bind
     restart: unless-stopped
     ports:
       - "53:53/tcp"
@@ -61,7 +61,7 @@ services:
         echo 'include \"/etc/bind/logging.conf\";' >> /etc/bind/named.conf;
       fi;
       if [ ! -f /etc/bind/named.conf.local ]; then
-        echo '// Managed by Zonerr' > /etc/bind/named.conf.local;
+        echo '// Managed by DNS Manager' > /etc/bind/named.conf.local;
       fi;
       mkdir -p /etc/bind/zones /var/log/bind;
       chown -R bind:bind /etc/bind/zones /var/log/bind;

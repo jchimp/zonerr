@@ -8,6 +8,43 @@ import dns.rdatatype
 import dns.node
 import dns.rdataclass
 import dns.rdata
+import dns.exception
+import re
+
+
+def _normalize_dns_name(name: str) -> str:
+    """
+    Normalize a DNS name component (not email) to a safe form without trailing dot.
+    """
+    name = (name or "").strip()
+    name = name.rstrip(".")
+    # collapse repeated dots
+    while ".." in name:
+        name = name.replace("..", ".")
+    return name
+
+def _normalize_rname(email_or_rname: str) -> str:
+    """
+    Normalize SOA rname. Accepts either:
+    - admin.example.com (DNS rname)
+    - admin@example.com (email form)
+    Returns DNS rname WITHOUT trailing dot.
+    """
+    s = (email_or_rname or "").strip()
+    s = s.rstrip(".")
+    if "@" in s:
+        s = s.replace("@", ".")
+    while ".." in s:
+        s = s.replace("..", ".")
+    return s
+
+def _assert_no_empty_labels(fqdn: str, field: str):
+    # Empty label happens with leading dot, trailing dot in the middle, or double-dot
+    if fqdn.startswith(".") or ".." in fqdn:
+        raise ValueError(f"Invalid {field}: '{fqdn}' (empty DNS label).")
+    # Also catch accidental blank like "" -> ".zone."
+    if fqdn.strip(".") == "":
+        raise ValueError(f"Invalid {field}: '{fqdn}' (empty DNS name).")
 
 
 class ZoneService:
@@ -67,45 +104,67 @@ class ZoneService:
             result.append(entry)
         return sorted(result, key=lambda z: (z["type"], z["name"]))
 
+
     def create_zone(self, zone_name, zone_type, soa_ns, soa_email, default_ttl=86400, ns_ip=""):
         index = self._load_index()
         if zone_name in index:
             raise ValueError(f"Zone '{zone_name}' already exists.")
 
+        zone_name = _normalize_dns_name(zone_name)
+        if not zone_name:
+            raise ValueError("Zone name is required.")
+
         serial = self._new_serial()
         zone_file = self._zone_file(zone_name)
-        soa_email_dns = soa_email.replace("@", ".")
 
-        # Ensure SOA mname is fully qualified
-        if not soa_ns.endswith("."):
-            soa_fqdn = soa_ns + "." + zone_name + "."
-        else:
-            soa_fqdn = soa_ns
+        # normalize SOA NS input
+        soa_ns = _normalize_dns_name(soa_ns) or "ns1"
+        # allow user to pass ns1 OR ns1.zone OR ns1.zone.tld — we always derive a usable "ns_short"
+        ns_short = soa_ns.split(".")[0] if soa_ns else "ns1"
 
-        # NS short name (relative to zone origin)
-        ns_short = soa_ns.split(".")[0]
+        # build fully qualified SOA MNAME and validate
+        soa_mname = f"{ns_short}.{zone_name}."
+        _assert_no_empty_labels(soa_mname, "SOA primary NS (mname)")
 
-        content = "$TTL {ttl}\n".format(ttl=default_ttl)
-        content += "$ORIGIN {zn}.\n\n".format(zn=zone_name)
-        content += "@   IN  SOA {ns} {email}. (\n".format(ns=soa_fqdn, email=soa_email_dns)
-        content += "                {serial}   ; Serial\n".format(serial=serial)
+        # normalize rname + validate
+        rname = _normalize_rname(soa_email) or f"admin.{zone_name}"
+        soa_rname = f"{rname}."
+        _assert_no_empty_labels(soa_rname, "SOA email (rname)")
+
+        content = f"$TTL {int(default_ttl)}\n"
+        content += f"$ORIGIN {zone_name}.\n\n"
+        content += f"@   IN  SOA {soa_mname} {soa_rname} (\n"
+        content += f"                {serial}   ; Serial\n"
         content += "                3600       ; Refresh\n"
         content += "                900        ; Retry\n"
         content += "                604800     ; Expire\n"
         content += "                86400      ; Minimum TTL\n"
         content += "            )\n\n"
-        content += "@   {ttl}   IN  NS  {ns_short}\n".format(ttl=default_ttl, ns_short=ns_short)
+        content += f"@   {int(default_ttl)}   IN  NS  {ns_short}\n"
 
-        # Glue A record for nameserver
+        # Glue A record (forward zones only typically, but harmless if you allow it)
         if ns_ip:
-            content += "{ns_short}   {ttl}   IN  A   {ip}\n".format(
-                ns_short=ns_short, ttl=default_ttl, ip=ns_ip)
+            content += f"{ns_short}   {int(default_ttl)}   IN  A  {ns_ip}\n"
 
+        # Write file
         with open(zone_file, "w") as f:
             f.write(content)
 
+        # Validate immediately so we don't leave broken zones behind
+        try:
+            dns.zone.from_file(zone_file, origin=zone_name + ".", check_origin=False)
+        except Exception as e:
+            # rollback the file on parse error
+            try:
+                os.remove(zone_file)
+            except Exception:
+                pass
+            raise ValueError(f"Zone file validation failed: {e}")
+
+        # Only save index if it validated
         index[zone_name] = {"type": zone_type, "file": zone_file}
         self._save_index(index)
+        
 
     def get_zone_meta(self, zone_name):
         index = self._load_index()

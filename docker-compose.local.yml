@@ -1,0 +1,24 @@
+services:
+  zonerr:
+    build: .
+    container_name: zonerr
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env
+    environment:
+      - BIND_ZONE_DIR=/etc/bind/zones
+      - BIND_NAMED_CONF_LOCAL=/etc/bind/named.conf.local
+      - BIND_LOG_DIR=/var/log/bind
+      - RNDC_HOST=host.docker.internal
+      - RNDC_PORT=953
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - /etc/bind/zones:/etc/bind/zones
+      - /etc/bind/named.conf.local:/etc/bind/named.conf.local
+      - zonerr-data:/data
+
+volumes:
+  zonerr-data:
