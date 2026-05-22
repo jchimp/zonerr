@@ -157,6 +157,18 @@ class BindService:
             return output
         return "Could not connect to BIND:\n" + output
 
+    def reconfig(self):
+        """Reload named.conf changes only (no zone reload)."""
+        return self._rndc_cmd("reconfig")
+
+    def flush(self):
+        """Flush the DNS resolver cache."""
+        return self._rndc_cmd("flush")
+
+    def stop(self):
+        """Stop BIND. Docker restart policy will bring it back."""
+        return self._rndc_cmd("stop")
+
     # -- log reading ---------------------------------------------------
 
     def get_log_files(self):

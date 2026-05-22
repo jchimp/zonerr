@@ -100,3 +100,38 @@ def logs(log_name=None):
         tail=tail,
         full=full,
     )
+
+
+@settings_bp.route("/bind-action", methods=["POST"])
+@login_required
+def bind_action():
+    bs = BindService(current_app.config)
+    action = request.form.get("action", "")
+
+    actions = {
+        "reload": ("Reload", bs.reload),
+        "reconfig": ("Reconfig", bs.reconfig),
+        "flush": ("Flush Cache", bs.flush),
+        "restart": ("Restart", bs.stop),
+    }
+
+    if action not in actions:
+        flash(f"Unknown action: {action}", "danger")
+        return redirect(url_for("settings.status"))
+
+    label, func = actions[action]
+    ok, msg = func()
+
+    if action == "restart":
+        # rndc stop returns success when BIND shuts down — Docker restarts it
+        flash(
+            f"BIND is restarting... the status below may be stale for a few seconds. "
+            f"Hit Refresh in 3–5 seconds.",
+            "warning",
+        )
+    elif ok:
+        flash(f"{label} successful.", "success")
+    else:
+        flash(f"{label} failed: {msg}", "danger")
+
+    return redirect(url_for("settings.status"))
