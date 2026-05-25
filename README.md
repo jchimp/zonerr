@@ -6,11 +6,10 @@ Built with Python/Flask and Bootstrap 5.
 ## Features
 
 - **Zone Management** - Create, edit, and delete forward and reverse DNS zones
-- **Record Management** - Full CRUD for A, AAAA, CNAME, TXT, SRV, MX, NS, and PTR records
+- **Record Management** - Full management for A, AAAA, CNAME, TXT, SRV, MX, NS, and PTR records
 - **Auto-PTR** - Optionally create matching PTR records when adding A records
 - **SOA Management** - Auto-incrementing serial numbers (YYYYMMDDNN format)
 - **Dark/Light Theme** - Toggle with persistent localStorage preference
-- **Simple Auth** - Password configured via environment variables
 - **Replication** - Simple master/slave configuration
 - **BIND Status** - View rndc status directly in the UI
 - **Docker Ready** - Two modes: full stack or app-only
