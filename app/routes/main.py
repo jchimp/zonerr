@@ -25,6 +25,7 @@ def dashboard():
     # Query stats
     ss = StatsService(current_app.config)
     stats = ss.get_overview_stats()
+    hourly = ss.get_hourly_stats()
 
     return render_template(
         "dashboard.html",
@@ -33,4 +34,6 @@ def dashboard():
         reverse_zones=reverse,
         total_records=total_records,
         stats=stats,
+        hourly_labels=hourly["labels"],
+        hourly_values=hourly["values"],
     )

@@ -116,3 +116,34 @@ class StatsService:
             "top_names": name_counter.most_common(10),
             "by_type": dict(type_counter.most_common()),
         }
+
+    def get_hourly_stats(self, max_lines=10000):
+        """Return query counts bucketed by hour for the last 24 hours."""
+        queries = self.parse_query_log(max_lines)
+
+        now = datetime.datetime.now()
+        buckets = {}
+        for i in range(24):
+            hour = now - datetime.timedelta(hours=23 - i)
+            key = hour.strftime("%H:00")
+            buckets[key] = 0
+
+        for q in queries:
+            try:
+                # Parse "22-May-2026 05:57:06.982"
+                dt = datetime.datetime.strptime(
+                    q["date"] + " " + q["time"].split(".")[0],
+                    "%d-%b-%Y %H:%M:%S",
+                )
+                age = now - dt
+                if age.total_seconds() <= 86400:
+                    key = dt.strftime("%H:00")
+                    if key in buckets:
+                        buckets[key] += 1
+            except (ValueError, KeyError):
+                continue
+
+        labels = list(buckets.keys())
+        values = list(buckets.values())
+        #return {"labels": labels, "values": values}
+        return {"labels": [str(k) for k in buckets.keys()], "values": [int(v) for v in buckets.values()]}

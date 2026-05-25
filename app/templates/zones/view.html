@@ -88,6 +88,11 @@
 <div class="card border-0">
     <div class="card-header py-2 px-3 d-flex align-items-center justify-content-between">
         <h6 class="mb-0 fw-semibold"><i class="bi bi-list-ul me-2"></i>Records ({{ records|length }})</h6>
+        <div class="input-group input-group-sm" style="max-width: 280px;">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input type="text" class="form-control form-control-sm font-monospace"
+                   id="recordSearch" placeholder="Filter records...">
+        </div>
     </div>
     <div class="table-responsive">
         <table class="table table-hover table-sm mb-0 dns-table">
@@ -133,4 +138,15 @@
     <p>No records yet. <a href="{{ url_for('records.add_record', zone_name=zone.name) }}">Add the first record</a>.</p>
 </div>
 {% endif %}
+
+<script>
+document.getElementById('recordSearch').addEventListener('keyup', function() {
+    const q = this.value.toLowerCase();
+    document.querySelectorAll('.dns-table tbody tr').forEach(function(row) {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(q) ? '' : 'none';
+    });
+});
+</script>
+
 {% endblock %}

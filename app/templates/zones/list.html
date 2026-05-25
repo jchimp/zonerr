@@ -13,6 +13,13 @@
     </div>
 </div>
 {% if zones %}
+<div class="mb-2">
+    <div class="input-group input-group-sm" style="max-width: 350px;">
+        <span class="input-group-text"><i class="bi bi-search"></i></span>
+        <input type="text" class="form-control form-control-sm font-monospace"
+               id="zoneSearch" placeholder="Filter zones..." autofocus>
+    </div>
+</div>
 <div class="card border-0">
     <div class="table-responsive">
         <table class="table table-hover table-sm mb-0 dns-table">
@@ -49,4 +56,15 @@
     <p class="mt-2">No zones configured yet.</p>
 </div>
 {% endif %}
+
+<script>
+document.getElementById('zoneSearch').addEventListener('keyup', function() {
+    const q = this.value.toLowerCase();
+    document.querySelectorAll('.dns-table tbody tr').forEach(function(row) {
+        const name = row.cells[0].textContent.toLowerCase();
+        row.style.display = name.includes(q) ? '' : 'none';
+    });
+});
+</script>
+
 {% endblock %}

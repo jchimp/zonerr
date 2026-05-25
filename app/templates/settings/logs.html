@@ -29,6 +29,13 @@
     <div class="card-header py-2 px-3 d-flex align-items-center justify-content-between">
         <h6 class="mb-0 fw-semibold font-monospace">{{ active_log }}</h6>
         <div class="d-flex gap-1">
+            <span class="border-start mx-1"></span>
+            <div class="input-group input-group-sm" style="max-width: 220px;">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="text" class="form-control form-control-sm font-monospace"
+                       id="logSearch" placeholder="Search logs...">
+            </div>
+            <span class="small text-muted ms-1" id="matchCount"></span>
             <a href="{{ url_for('settings.logs', log_name=active_log, tail=50) }}"
                class="btn btn-sm {% if tail == 50 and not full %}btn-primary{% else %}btn-outline-secondary{% endif %}">
                 Last 50
@@ -74,38 +81,16 @@
 <script>
 // Auto-scroll to bottom
 document.addEventListener('DOMContentLoaded', function() {
-    const el = document.getElementById('logOutput');
+    var el = document.getElementById('logOutput');
     if (el) el.scrollTop = el.scrollHeight;
 });
 
-// Copy to clipboard
-document.addEventListener('DOMContentLoaded', function() {
-    const btn = document.getElementById('copyBtn');
+// Copy to clipboard with HTTP fallback
+(function() {
+    var btn = document.getElementById('copyBtn');
     if (!btn) return;
-    btn.addEventListener('click', function() {
-        const el = document.getElementById('logOutput');
-        if (!el) return;
-        const text = el.textContent;
-        if (navigator.clipboard && window.isSecureContext) {
-            navigator.clipboard.writeText(text).then(function() {
-                showCopied();
-            });
-        } else {
-            // Fallback for HTTP
-            const textarea = document.createElement('textarea');
-            textarea.value = text;
-            textarea.style.position = 'fixed';
-            textarea.style.opacity = '0';
-            document.body.appendChild(textarea);
-            textarea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textarea);
-            showCopied();
-        }
-    });
 
     function showCopied() {
-        const btn = document.getElementById('copyBtn');
         btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Copied!';
         btn.classList.replace('btn-outline-info', 'btn-success');
         setTimeout(function() {
@@ -113,6 +98,60 @@ document.addEventListener('DOMContentLoaded', function() {
             btn.classList.replace('btn-success', 'btn-outline-info');
         }, 2000);
     }
-});
+
+    btn.addEventListener('click', function() {
+        var el = document.getElementById('logOutput');
+        if (!el) return;
+        var text = el.textContent;
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(text).then(showCopied);
+        } else {
+            var ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            showCopied();
+        }
+    });
+})();
+
+// Log search + highlight
+(function() {
+    var input = document.getElementById('logSearch');
+    var output = document.getElementById('logOutput');
+    var counter = document.getElementById('matchCount');
+    if (!input || !output) return;
+
+    var originalText = output.textContent;
+
+    input.addEventListener('keyup', function() {
+        var q = this.value.trim();
+        if (!q) {
+            output.innerHTML = '';
+            output.textContent = originalText;
+            counter.textContent = '';
+            return;
+        }
+
+        var escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        var regex = new RegExp('(' + escaped + ')', 'gi');
+        var lines = originalText.split('\n');
+        var count = 0;
+        var highlighted = lines.map(function(line) {
+            return line.replace(regex, function(match) {
+                count++;
+                return '<mark>' + match + '</mark>';
+            });
+        }).join('\n');
+
+        output.innerHTML = highlighted;
+        counter.textContent = count + ' match' + (count !== 1 ? 'es' : '');
+    });
+})();
 </script>
+
 {% endblock %}
