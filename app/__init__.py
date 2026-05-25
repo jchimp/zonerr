@@ -26,11 +26,13 @@ def create_app():
     from app.routes.zones import zones_bp
     from app.routes.records import records_bp
     from app.routes.settings import settings_bp
+    from app.routes.tools import tools_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(main_bp)
     app.register_blueprint(zones_bp, url_prefix="/zones")
     app.register_blueprint(records_bp, url_prefix="/records")
     app.register_blueprint(settings_bp, url_prefix="/settings")
+    app.register_blueprint(tools_bp, url_prefix="/tools")
 
     return app

@@ -3,9 +3,14 @@
 {% block content %}
 <div class="d-flex align-items-center justify-content-between mb-3">
     <h5 class="mb-0 fw-bold"><i class="bi bi-globe me-2"></i>Zones</h5>
-    <a href="{{ url_for('zones.create_zone') }}" class="btn btn-primary btn-sm">
-        <i class="bi bi-plus-circle me-1"></i>New Zone
-    </a>
+    <div class="d-flex gap-1">
+        <a href="{{ url_for('zones.create_zone') }}" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-circle me-1"></i>New Zone
+        </a>
+        <a href="{{ url_for('zones.import_zone') }}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-box-arrow-in-down me-1"></i>Import
+        </a>
+    </div>
 </div>
 {% if zones %}
 <div class="card border-0">

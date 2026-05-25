@@ -20,7 +20,7 @@ services:
       - app-data:/data
     depends_on:
       bind:
-        condition: service_started
+        condition: service_healthy
     entrypoint: /bin/bash
     command: >
       -c "
@@ -46,6 +46,12 @@ services:
     environment:
       - BIND9_USER=bind
       - TZ=UTC
+    healthcheck:
+      test: ["CMD", "rndc", "status"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     entrypoint: /bin/bash
     command: >
       -c "
@@ -65,7 +71,7 @@ services:
       fi;
       mkdir -p /etc/bind/zones /var/log/bind;
       chown -R bind:bind /etc/bind/zones /var/log/bind;
-      exec named -g -u bind
+      exec named -f -u bind
       "
 
 volumes:

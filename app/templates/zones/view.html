@@ -18,6 +18,9 @@
         <a href="{{ url_for('zones.raw_edit', zone_name=zone.name) }}" class="btn btn-outline-info btn-sm">
             <i class="bi bi-code-square me-1"></i>Raw Edit
         </a>
+        <a href="{{ url_for('zones.export_zone', zone_name=zone.name) }}" class="btn btn-outline-success btn-sm">
+            <i class="bi bi-download me-1"></i>Export
+        </a>
         <form method="POST" action="{{ url_for('zones.delete_zone', zone_name=zone.name) }}" class="d-inline" onsubmit="return confirmDelete('zone', '{{ zone.name }}')">
             <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash me-1"></i>Delete Zone</button>
         </form>

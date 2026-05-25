@@ -216,7 +216,10 @@ class BindService:
         Write content to a BIND config file.
         Creates a .bak backup before overwriting.
         Validates with named-checkconf before committing.
-        """
+        """       
+        # Normalize line endings
+        content = content.replace('\r\n', '\n').replace('\r', '\n')
+
         # Backup
         if os.path.isfile(filepath):
             bak = filepath + ".bak"
@@ -264,3 +267,44 @@ class BindService:
             "named.conf": "/etc/bind/named.conf",
             "rndc-controls.conf": "/etc/bind/rndc-controls.conf",
         }
+
+    # -- dig query ------------------------------------------------------
+
+    def dig_query(self, name, qtype="A", server=None, short=False, reverse=False):
+        """Run a dig query and return the output."""
+        cmd = ["dig"]
+
+        if reverse:
+            cmd.append("-x")
+            cmd.append(name)
+        else:
+            cmd.append(name)
+            cmd.append(qtype)
+
+        if server:
+            cmd.append("@" + server)
+        else:
+            cmd.append("@bind")
+
+        if short:
+            cmd.append("+short")
+        else:
+            cmd.append("+noall")
+            cmd.append("+answer")
+            cmd.append("+authority")
+            cmd.append("+comments")
+            cmd.append("+stats")
+
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+            output = result.stdout
+            if result.stderr:
+                output += "\n" + result.stderr
+            return output.strip()
+        except subprocess.TimeoutExpired:
+            return "Query timed out after 10 seconds."
+        except FileNotFoundError:
+            return "dig not found. Is bind9-dnsutils installed?"
+        except Exception as e:
+            return f"Error: {e}"
+        

@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}Query Tool — Zonerr{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center mb-3">
+    <h5 class="mb-0 fw-bold"><i class="bi bi-search me-2"></i>Query Tool</h5>
+</div>
+
+<div class="card border-0 mb-3">
+    <div class="card-body p-3">
+        <form method="POST">
+            <div class="row g-2 mb-2">
+                <div class="col-md-5">
+                    <label for="qname" class="form-label small mb-1">Name</label>
+                    <input type="text" class="form-control form-control-sm font-monospace"
+                           id="qname" name="qname" required
+                           placeholder="example.com"
+                           value="{{ qname | default('') }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="qtype" class="form-label small mb-1">Type</label>
+                    <select class="form-select form-select-sm" id="qtype" name="qtype">
+                        {% for rt in ['A','AAAA','CNAME','MX','NS','SOA','TXT','SRV','PTR','ANY'] %}
+                        <option value="{{ rt }}" {% if qtype | default('A') == rt %}selected{% endif %}>{{ rt }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="server" class="form-label small mb-1">Server</label>
+                    <input type="text" class="form-control form-control-sm font-monospace"
+                           id="server" name="server"
+                           placeholder="bind (default)"
+                           value="{{ server | default('') }}">
+                </div>
+            </div>
+            <div class="row g-2 mb-2">
+                <div class="col-auto">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="short_mode" name="short_mode"
+                               {% if short_mode %}checked{% endif %}>
+                        <label class="form-check-label small" for="short_mode">+short (answer only)</label>
+                    </div>
+                </div>
+                <div class="col-auto">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="reverse" name="reverse"
+                               {% if reverse %}checked{% endif %}>
+                        <label class="form-check-label small" for="reverse">Reverse lookup (-x)</label>
+                    </div>
+                </div>
+            </div>
+            <div class="form-text small text-muted mb-2">
+                Leave server blank to query the local BIND container. Enter an IP to query external servers.
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm">
+                <i class="bi bi-search me-1"></i>Query
+            </button>
+        </form>
+    </div>
+</div>
+
+{% if result is defined and result %}
+<div class="card border-0">
+    <div class="card-header py-2 px-3 d-flex align-items-center justify-content-between">
+        <h6 class="mb-0 fw-semibold"><i class="bi bi-terminal me-2"></i>Results</h6>
+        <div class="d-flex gap-1">
+            <button class="btn btn-sm btn-outline-info" id="copyBtn" title="Copy to clipboard">
+                <i class="bi bi-clipboard me-1"></i>Copy
+            </button>
+            <a href="{{ url_for('tools.query') }}" class="btn btn-outline-secondary btn-sm">Reset</a>
+            </a>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <pre class="mb-0 small font-monospace status-output p-3" id="resultOutput">{{ result }}</pre>
+    </div>
+</div>
+{% endif %}
+
+<script>
+// Reverse checkbox auto-selects PTR
+document.getElementById('reverse').addEventListener('change', function() {
+    if (this.checked) {
+        document.getElementById('qtype').value = 'PTR';
+    }
+});
+
+// Copy to clipboard with HTTP fallback
+(function() {
+    var btn = document.getElementById('copyBtn');
+    if (!btn) return;
+
+    function showCopied() {
+        btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Copied!';
+        btn.classList.replace('btn-outline-info', 'btn-success');
+        setTimeout(function() {
+            btn.innerHTML = '<i class="bi bi-clipboard me-1"></i>Copy';
+            btn.classList.replace('btn-success', 'btn-outline-info');
+        }, 2000);
+    }
+
+    btn.addEventListener('click', function() {
+        var el = document.getElementById('resultOutput');
+        if (!el) return;
+        var text = el.textContent;
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(text).then(showCopied);
+        } else {
+            var ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            showCopied();
+        }
+    });
+})();
+</script>
+{% endblock %}

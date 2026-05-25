@@ -490,6 +490,9 @@ class ZoneService:
         """Write raw content to the zone file. Validates with dnspython first."""
         zone_file = self._get_zone_file(zone_name)
 
+        # Normalize line endings
+        content = content.replace('\r\n', '\n').replace('\r', '\n')
+
         # Validate the zone content before writing
         try:
             dns.zone.from_text(content, origin=zone_name + ".", check_origin=False)
@@ -498,3 +501,30 @@ class ZoneService:
 
         with open(zone_file, "w") as f:
             f.write(content)
+
+    # -- import zone --------------------------------------
+
+    def import_zone(self, zone_name, zone_type, content):
+        """Import a zone from raw content. Validates, writes file, updates index."""
+        zone_name = _normalize_dns_name(zone_name)
+        if not zone_name:
+            raise ValueError("Zone name is required.")
+
+        index = self._load_index()
+        if zone_name in index:
+            raise ValueError(f"Zone '{zone_name}' already exists.")
+
+        # Validate the content parses as a valid zone
+        try:
+            dns.zone.from_text(content, origin=zone_name + ".", check_origin=False)
+        except Exception as e:
+            raise ValueError(f"Zone validation failed: {e}")
+
+        # Write zone file
+        zone_file = self._zone_file(zone_name)
+        with open(zone_file, "w") as f:
+            f.write(content)
+
+        # Update index
+        index[zone_name] = {"type": zone_type, "file": zone_file}
+        self._save_index(index)

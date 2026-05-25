@@ -1,8 +1,9 @@
+import io
 import dns.exception
 
 from flask import (
     Blueprint, render_template, request, redirect, url_for,
-    flash, current_app,
+    flash, current_app, send_file,
 )
 from app.auth import login_required
 from app.services.zone_service import ZoneService
@@ -158,3 +159,101 @@ def raw_edit(zone_name):
 
     raw_content = zs.read_raw_zone(zone_name)
     return render_template("zones/raw_edit.html", zone=zone_meta, raw_content=raw_content)
+
+
+@zones_bp.route("/<zone_name>/export")
+@login_required
+def export_zone(zone_name):
+    zs = ZoneService(current_app.config)
+
+    try:
+        raw = zs.read_raw_zone(zone_name)
+    except FileNotFoundError:
+        flash(f"Zone '{zone_name}' not found.", "danger")
+        return redirect(url_for("zones.list_zones"))
+
+    buf = io.BytesIO()
+    buf.write(raw.encode("utf-8"))
+    buf.seek(0)
+
+    filename = "db." + zone_name
+    return send_file(
+        buf,
+        mimetype="text/plain",
+        as_attachment=True,
+        download_name=filename,
+    )
+
+
+@zones_bp.route("/import", methods=["GET", "POST"])
+@login_required
+def import_zone():
+    zs = ZoneService(current_app.config)
+    bs = BindService(current_app.config)
+
+    if request.method == "POST":
+        zone_name = request.form.get("zone_name", "").strip().rstrip(".")
+        zone_type = request.form.get("zone_type", "forward")
+
+        if not zone_name:
+            flash("Zone name is required.", "danger")
+            return render_template("zones/import.html")
+
+        # Get content: prefer file upload, fall back to paste
+        content = ""
+        uploaded = request.files.get("zone_file")
+        if uploaded and uploaded.filename:
+            content = uploaded.read().decode("utf-8", errors="replace")
+        else:
+            content = request.form.get("paste_content", "")
+
+        if not content.strip():
+            flash("No zone content provided. Upload a file or paste the zone data.", "danger")
+            return render_template(
+                "zones/import.html",
+                zone_name=zone_name,
+                zone_type=zone_type,
+            )
+
+        # Normalize line endings (Windows paste sends \r\n)
+        content = content.replace('\r\n', '\n').replace('\r', '\n')
+
+        try:
+            zs.import_zone(zone_name, zone_type, content)
+            bs.add_zone_to_config(zone_name, zone_type)
+            ok, msg = bs.reload()
+
+            if not ok:
+                flash(f"Zone imported but BIND reload failed: {msg}", "warning")
+            else:
+                flash(f"Zone '{zone_name}' imported successfully.", "success")
+
+            return redirect(url_for("zones.view_zone", zone_name=zone_name))
+
+        except ValueError as e:
+            flash(str(e), "danger")
+            return render_template(
+                "zones/import.html",
+                zone_name=zone_name,
+                zone_type=zone_type,
+                paste_content=content,
+            )
+        except Exception as e:
+            # Rollback
+            try:
+                zs.delete_zone(zone_name)
+            except Exception:
+                pass
+            try:
+                bs.remove_zone_from_config(zone_name)
+            except Exception:
+                pass
+            flash(f"Error importing zone: {e}", "danger")
+            return render_template(
+                "zones/import.html",
+                zone_name=zone_name,
+                zone_type=zone_type,
+                paste_content=content,
+            )
+
+    return render_template("zones/import.html")

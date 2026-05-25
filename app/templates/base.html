@@ -27,13 +27,26 @@
                         <i class="bi bi-globe me-2"></i>Zones
                     </a>
                 </li>
-                <!--
                 <li class="nav-item">
-                    <a href="{{ url_for('zones.create_zone') }}" class="nav-link {% if request.endpoint == 'zones.create_zone' %}active{% endif %} ps-4">
+                    <a href="{{ url_for('zones.create_zone') }}"
+                       class="nav-link {% if request.endpoint == 'zones.create_zone' %}active{% endif %} ps-4">
                         <i class="bi bi-plus-circle me-2"></i>New Zone
                     </a>
                 </li>
-                -->
+                <li class="nav-item">
+                    <a href="{{ url_for('zones.import_zone') }}"
+                       class="nav-link {% if request.endpoint == 'zones.import_zone' %}active{% endif %} ps-4">
+                        <i class="bi bi-box-arrow-in-down me-2"></i>Import Zone
+                    </a>
+                </li>
+                <li class="nav-item mt-2">
+                    <small class="text-muted px-2">TOOLS</small>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ url_for('tools.query') }}" class="nav-link {% if request.endpoint == 'tools.query' %}active{% endif %}">
+                        <i class="bi bi-search me-2"></i>Query
+                    </a>
+                </li>
                 <li class="nav-item mt-2">
                     <small class="text-muted px-2">SETTINGS</small>
                 </li>
