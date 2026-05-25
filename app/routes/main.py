@@ -1,6 +1,8 @@
 from flask import Blueprint, render_template, current_app
 from app.auth import login_required
 from app.services.zone_service import ZoneService
+from app.services.stats_service import StatsService
+
 
 main_bp = Blueprint("main", __name__)
 
@@ -19,10 +21,16 @@ def dashboard():
             total_records += len(records)
         except Exception:
             pass
+
+    # Query stats
+    ss = StatsService(current_app.config)
+    stats = ss.get_overview_stats()
+
     return render_template(
         "dashboard.html",
         zones=zones,
         forward_zones=forward,
         reverse_zones=reverse,
         total_records=total_records,
+        stats=stats,
     )

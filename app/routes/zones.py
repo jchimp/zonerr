@@ -5,9 +5,11 @@ from flask import (
     Blueprint, render_template, request, redirect, url_for,
     flash, current_app, send_file,
 )
+
 from app.auth import login_required
 from app.services.zone_service import ZoneService
 from app.services.bind_service import BindService
+from app.services.stats_service import StatsService
 
 
 zones_bp = Blueprint("zones", __name__)
@@ -78,11 +80,18 @@ def view_zone(zone_name):
         return redirect(url_for("zones.list_zones"))
     except Exception as e:
         flash(f"Zone file exists but could not be parsed: {e}", "danger")
-        # Still show meta; records empty
         zone_meta = zs.get_zone_meta(zone_name)
-        return render_template("zones/view.html", zone=zone_meta, records=[])
+        return render_template("zones/view.html", zone=zone_meta, records=[], zone_stats=None)
 
-    return render_template("zones/view.html", zone=zone_meta, records=records)
+    ss = StatsService(current_app.config)
+    zone_stats = ss.get_zone_stats(zone_name)
+
+    return render_template(
+        "zones/view.html",
+        zone=zone_meta,
+        records=records,
+        zone_stats=zone_stats,
+    )
 
 
 @zones_bp.route("/<zone_name>/edit", methods=["GET", "POST"])
@@ -176,7 +185,7 @@ def export_zone(zone_name):
     buf.write(raw.encode("utf-8"))
     buf.seek(0)
 
-    filename = "db." + zone_name
+    filename = "db." + zone_name + ".txt"
     return send_file(
         buf,
         mimetype="text/plain",

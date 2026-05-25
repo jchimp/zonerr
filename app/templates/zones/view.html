@@ -45,6 +45,45 @@
         </div>
     </div>
 </div>
+
+{% if zone_stats and zone_stats.total_queries > 0 %}
+<div class="card border-0 mb-3">
+    <div class="card-header py-2 px-3">
+        <h6 class="mb-0 fw-semibold"><i class="bi bi-bar-chart me-2"></i>Query Stats — {{ zone_stats.total_queries }} queries</h6>
+    </div>
+    <div class="card-body p-3">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="small text-muted mb-1 fw-semibold">Top Queried Names</div>
+                <table class="table table-sm mb-0 dns-table">
+                    <tbody>
+                        {% for name, count in zone_stats.top_names %}
+                        <tr>
+                            <td class="font-monospace">{{ name }}</td>
+                            <td class="text-end fw-semibold">{{ count }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="col-md-6">
+                <div class="small text-muted mb-1 fw-semibold">By Type</div>
+                <table class="table table-sm mb-0 dns-table">
+                    <tbody>
+                        {% for qtype, count in zone_stats.by_type.items() %}
+                        <tr>
+                            <td><span class="badge record-type-{{ qtype | lower }}">{{ qtype }}</span></td>
+                            <td class="text-end fw-semibold">{{ count }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 {% if records %}
 <div class="card border-0">
     <div class="card-header py-2 px-3 d-flex align-items-center justify-content-between">
