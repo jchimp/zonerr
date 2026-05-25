@@ -1,17 +1,18 @@
 # Zonerr
 
-A simple lightweight internal DNS server with a simple web interface for BIND management. Perfect for hosting internal DNS for homelabs.
-Built with Python/Flask and Bootstrap 5.
+A simple lightweight internal DNS server with a simple web interface for BIND management. 
+Perfect for hosting internal DNS for homelabs. Built with Python, Flask and Bootstrap 5.
 
 ## Features
 
 - **Zone Management** - Create, edit, and delete forward and reverse DNS zones
 - **Record Management** - Full management for A, AAAA, CNAME, TXT, SRV, MX, NS, and PTR records
+- **Import & Export** - Import and export entire zones via text files.
 - **Auto-PTR** - Optionally create matching PTR records when adding A records
 - **SOA Management** - Auto-incrementing serial numbers (YYYYMMDDNN format)
-- **Dark/Light Theme** - Toggle with persistent localStorage preference
 - **Replication** - Simple master/slave configuration
 - **BIND Status** - View rndc status directly in the UI
+- **Query Tool** - Query tool using dig to simple looks ups
 - **Docker Ready** - Two modes: full stack or app-only
 
 ## Quick Start
