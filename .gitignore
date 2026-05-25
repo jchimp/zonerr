@@ -3,6 +3,10 @@
 NOTES.md
 docs/private/
 
+# Temp and old
+*.old
+*.tmp
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
