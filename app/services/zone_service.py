@@ -1,15 +1,16 @@
-import os
-import json
 import datetime
-
-import dns.zone
-import dns.name
-import dns.rdatatype
-import dns.node
-import dns.rdataclass
-import dns.rdata
-import dns.exception
+import json
+import os
+import pathlib
 import re
+
+import dns.exception
+import dns.name
+import dns.node
+import dns.rdata
+import dns.rdataclass
+import dns.rdatatype
+import dns.zone
 
 
 def _normalize_dns_name(name: str) -> str:
@@ -47,6 +48,27 @@ def _assert_no_empty_labels(fqdn: str, field: str):
         raise ValueError(f"Invalid {field}: '{fqdn}' (empty DNS name).")
 
 
+_DNS_LABEL_RE = re.compile(
+    r'^(?:[a-zA-Z0-9](?:[a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)'
+    r'(?:\.(?:[a-zA-Z0-9](?:[a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?|[0-9]+))*$'
+)
+
+
+def _validate_zone_name(name: str) -> None:
+    """Reject zone names that aren't valid DNS names or could escape the zone directory."""
+    if not name:
+        raise ValueError("Zone name is required.")
+    if len(name) > 253:
+        raise ValueError(f"Zone name too long: '{name}'")
+    # Block path traversal characters before any file operations
+    if any(c in name for c in ('/', '\\', '\x00')):
+        raise ValueError(f"Invalid zone name: '{name}'")
+    if not _DNS_LABEL_RE.match(name):
+        raise ValueError(
+            f"Invalid zone name: '{name}' (only letters, digits, hyphens, and dots allowed)"
+        )
+
+
 class ZoneService:
     """Manages BIND zone files on disk and a zones.json index."""
 
@@ -67,8 +89,12 @@ class ZoneService:
         with open(self.index_path, "w") as f:
             json.dump(data, f, indent=2)
 
-    def _zone_file(self, zone_name):
-        return os.path.join(self.zone_dir, "db." + zone_name)
+    def _zone_file(self, zone_name: str) -> str:
+        base = pathlib.Path(self.zone_dir).resolve()
+        candidate = (base / f"db.{zone_name}").resolve()
+        if not candidate.is_relative_to(base):
+            raise ValueError(f"Invalid zone name: path traversal detected in '{zone_name}'")
+        return str(candidate)
 
     # -- serial helpers ------------------------------------------------
 
@@ -106,13 +132,12 @@ class ZoneService:
 
 
     def create_zone(self, zone_name, zone_type, soa_ns, soa_email, default_ttl=86400, ns_ip=""):
+        zone_name = _normalize_dns_name(zone_name)
+        _validate_zone_name(zone_name)
+
         index = self._load_index()
         if zone_name in index:
             raise ValueError(f"Zone '{zone_name}' already exists.")
-
-        zone_name = _normalize_dns_name(zone_name)
-        if not zone_name:
-            raise ValueError("Zone name is required.")
 
         serial = self._new_serial()
         zone_file = self._zone_file(zone_name)
@@ -507,8 +532,7 @@ class ZoneService:
     def import_zone(self, zone_name, zone_type, content):
         """Import a zone from raw content. Validates, writes file, updates index."""
         zone_name = _normalize_dns_name(zone_name)
-        if not zone_name:
-            raise ValueError("Zone name is required.")
+        _validate_zone_name(zone_name)
 
         index = self._load_index()
         if zone_name in index:

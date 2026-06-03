@@ -19,6 +19,7 @@
 <div class="card border-0">
     <div class="card-body p-3">
         <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="mb-3">
                 <textarea class="form-control font-monospace" id="raw_content" name="raw_content"
                           rows="25" spellcheck="false"

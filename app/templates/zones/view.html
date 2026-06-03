@@ -22,6 +22,7 @@
             <i class="bi bi-download me-1"></i>Export
         </a>
         <form method="POST" action="{{ url_for('zones.delete_zone', zone_name=zone.name) }}" class="d-inline" onsubmit="return confirmDelete('zone', '{{ zone.name }}')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash me-1"></i>Delete Zone</button>
         </form>
     </div>
@@ -30,6 +31,7 @@
         <a href="{{ url_for('records.add_record', zone_name=zone.name) }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-circle me-1"></i>Add Record</a>
         <a href="{{ url_for('zones.edit_zone', zone_name=zone.name) }}" class="btn btn-outline-warning btn-sm"><i class="bi bi-pencil me-1"></i>Edit SOA</a>
         <form method="POST" action="{{ url_for('zones.delete_zone', zone_name=zone.name) }}" class="d-inline" onsubmit="return confirmDelete('zone', '{{ zone.name }}')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash me-1"></i>Delete Zone</button>
         </form>
     </div>
@@ -120,6 +122,7 @@
                         <div class="btn-group btn-group-sm">
                             <a href="{{ url_for('records.edit_record', zone_name=zone.name, record_index=loop.index0) }}" class="btn btn-outline-warning py-0 px-1" title="Edit"><i class="bi bi-pencil"></i></a>
                             <form method="POST" action="{{ url_for('records.delete_record', zone_name=zone.name, record_index=loop.index0) }}" class="d-inline" onsubmit="return confirmDelete('record', '{{ record.name }} {{ record.type }}')">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn btn-outline-danger py-0 px-1" title="Delete"><i class="bi bi-trash"></i></button>
                             </form>
                         </div>

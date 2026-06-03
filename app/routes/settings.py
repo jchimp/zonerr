@@ -1,10 +1,13 @@
+import ipaddress
+import io
 import json
 import os
-import io
+
 from flask import (
     Blueprint, render_template, request, redirect, url_for,
     flash, current_app, send_file,
 )
+
 from app.auth import login_required
 from app.services.bind_service import BindService
 
@@ -22,6 +25,15 @@ def _save_replication_config(path, data):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w") as f:
         json.dump(data, f, indent=2)
+
+
+def _validate_ip_list(ips: list[str], field: str) -> None:
+    """Raise ValueError if any entry is not a valid IP address or CIDR network."""
+    for ip in ips:
+        try:
+            ipaddress.ip_network(ip, strict=False)
+        except ValueError:
+            raise ValueError(f"Invalid IP address in {field}: '{ip}'")
 
 
 @settings_bp.route("/replication", methods=["GET", "POST"])
@@ -42,6 +54,19 @@ def replication():
         masters = [
             ip.strip() for ip in request.form.get("masters", "").split("\n") if ip.strip()
         ]
+
+        valid_roles = {"standalone", "primary", "secondary"}
+        if role not in valid_roles:
+            flash(f"Invalid role '{role}'. Must be one of: {', '.join(sorted(valid_roles))}.", "danger")
+            return render_template("settings/replication.html", config=_load_replication_config(config_path))
+
+        try:
+            _validate_ip_list(allow_transfer, "Allow Transfer")
+            _validate_ip_list(also_notify, "Also Notify")
+            _validate_ip_list(masters, "Masters")
+        except ValueError as e:
+            flash(str(e), "danger")
+            return render_template("settings/replication.html", config=_load_replication_config(config_path))
 
         config = {
             "role": role,

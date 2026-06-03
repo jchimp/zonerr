@@ -8,6 +8,7 @@
 <div class="card border-0" style="max-width: 600px;">
     <div class="card-body p-3">
         <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="mb-2">
                 <label for="soa_ns" class="form-label small mb-1">Primary Nameserver</label>
                 <input type="text" class="form-control form-control-sm font-monospace" id="soa_ns" name="soa_ns" value="{{ zone.soa_ns }}" required>
