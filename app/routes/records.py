@@ -1,3 +1,5 @@
+import logging
+
 from flask import (
     Blueprint, render_template, request, redirect, url_for,
     flash, current_app,
@@ -5,6 +7,8 @@ from flask import (
 from app.auth import login_required
 from app.services.zone_service import ZoneService
 from app.services.bind_service import BindService
+
+logger = logging.getLogger(__name__)
 
 records_bp = Blueprint("records", __name__)
 
@@ -64,8 +68,11 @@ def add_record(zone_name):
             bs.reload()
             flash(f"{rtype} record added successfully.", "success")
             return redirect(url_for("zones.view_zone", zone_name=zone_name))
-        except Exception as e:
-            flash(f"Error adding record: {e}", "danger")
+        except ValueError as e:
+            flash(str(e), "danger")
+        except Exception:
+            logger.exception("Unexpected error adding record to zone '%s'", zone_name)
+            flash("An unexpected error occurred while adding the record.", "danger")
 
     return render_template(
         "records/add.html", zone=zone_meta,
@@ -92,8 +99,9 @@ def _handle_auto_ptr(zs, zone_name, hostname, ip, ttl, reverse_zones):
         try:
             zs.add_record(reverse_zone, ptr_name, ttl, "PTR", fqdn)
             flash(f"PTR record created in {reverse_zone}.", "success")
-        except Exception as e:
-            flash(f"PTR record creation failed: {e}", "warning")
+        except Exception:
+            logger.exception("Error creating PTR record in zone '%s'", reverse_zone)
+            flash("PTR record creation failed. Check the server logs.", "warning")
     else:
         flash(
             f"Reverse zone '{reverse_zone}' does not exist. PTR record was NOT created. "
@@ -145,8 +153,11 @@ def edit_record(zone_name, record_index):
             bs.reload()
             flash("Record updated.", "success")
             return redirect(url_for("zones.view_zone", zone_name=zone_name))
-        except Exception as e:
-            flash(f"Error updating record: {e}", "danger")
+        except ValueError as e:
+            flash(str(e), "danger")
+        except Exception:
+            logger.exception("Unexpected error updating record in zone '%s'", zone_name)
+            flash("An unexpected error occurred while updating the record.", "danger")
 
     return render_template(
         "records/edit.html", zone=zone_meta, record=record,
@@ -164,7 +175,10 @@ def delete_record(zone_name, record_index):
         zs.delete_record(zone_name, record_index)
         bs.reload()
         flash("Record deleted.", "success")
-    except Exception as e:
-        flash(f"Error deleting record: {e}", "danger")
+    except ValueError as e:
+        flash(str(e), "danger")
+    except Exception:
+        logger.exception("Unexpected error deleting record in zone '%s'", zone_name)
+        flash("An unexpected error occurred while deleting the record.", "danger")
 
     return redirect(url_for("zones.view_zone", zone_name=zone_name))

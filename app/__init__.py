@@ -1,7 +1,7 @@
 import logging
 import os
 
-from flask import Flask
+from flask import Flask, request
 from flask_wtf.csrf import CSRFProtect
 
 logger = logging.getLogger(__name__)
@@ -58,5 +58,12 @@ def create_app():
     app.register_blueprint(records_bp, url_prefix="/records")
     app.register_blueprint(settings_bp, url_prefix="/settings")
     app.register_blueprint(tools_bp, url_prefix="/tools")
+
+    @app.after_request
+    def set_security_headers(response):
+        response.headers["X-Frame-Options"] = "SAMEORIGIN"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        return response
 
     return app

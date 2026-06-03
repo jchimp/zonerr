@@ -1,7 +1,10 @@
 import ipaddress
 import io
 import json
+import logging
 import os
+
+logger = logging.getLogger(__name__)
 
 from flask import (
     Blueprint, render_template, request, redirect, url_for,
@@ -80,8 +83,9 @@ def replication():
             bs.apply_replication_config(config)
             bs.reload()
             flash("Replication settings saved and applied.", "success")
-        except Exception as e:
-            flash(f"Error applying replication settings: {e}", "danger")
+        except Exception:
+            logger.exception("Unexpected error applying replication config")
+            flash("An unexpected error occurred while applying replication settings.", "danger")
 
         return redirect(url_for("settings.replication"))
 
@@ -103,7 +107,7 @@ def logs(log_name=None):
     bs = BindService(current_app.config)
     log_files = bs.get_log_files()
 
-    tail = request.args.get("tail", 200, type=int)
+    tail = min(request.args.get("tail", 200, type=int), 5000)
     full = request.args.get("full", False, type=bool)
 
     content = ""
@@ -212,8 +216,9 @@ def config_edit(config_name):
                 raw_content=raw_content,
                 configs=configs,
             )
-        except Exception as e:
-            flash(f"Error saving {config_name}: {e}", "danger")
+        except Exception:
+            logger.exception("Unexpected error saving config '%s'", config_name)
+            flash(f"An unexpected error occurred while saving {config_name}.", "danger")
             return render_template(
                 "settings/config_edit.html",
                 config_name=config_name,

@@ -1,4 +1,6 @@
 import io
+import logging
+
 import dns.exception
 
 from flask import (
@@ -11,6 +13,7 @@ from app.services.zone_service import ZoneService
 from app.services.bind_service import BindService
 from app.services.stats_service import StatsService
 
+logger = logging.getLogger(__name__)
 
 zones_bp = Blueprint("zones", __name__)
 
@@ -52,8 +55,9 @@ def create_zone():
             flash(f"Zone '{zone_name}' created successfully.", "success")
             return redirect(url_for("zones.view_zone", zone_name=zone_name))
 
-        except Exception as e:
-            # rollback best-effort
+        except ValueError as e:
+            flash(str(e), "danger")
+        except Exception:
             try:
                 zs.delete_zone(zone_name)
             except Exception:
@@ -62,8 +66,8 @@ def create_zone():
                 bs.remove_zone_from_config(zone_name)
             except Exception:
                 pass
-
-            flash(f"Error creating zone: {e}", "danger")
+            logger.exception("Unexpected error creating zone '%s'", zone_name)
+            flash("An unexpected error occurred while creating the zone.", "danger")
 
     return render_template("zones/create.html")
 
@@ -78,9 +82,13 @@ def view_zone(zone_name):
     except FileNotFoundError:
         flash(f"Zone '{zone_name}' not found.", "danger")
         return redirect(url_for("zones.list_zones"))
-    except Exception as e:
-        flash(f"Zone file exists but could not be parsed: {e}", "danger")
-        zone_meta = zs.get_zone_meta(zone_name)
+    except Exception:
+        logger.exception("Error parsing zone '%s'", zone_name)
+        flash("Zone file could not be parsed. Check the server logs.", "danger")
+        try:
+            zone_meta = zs.get_zone_meta(zone_name)
+        except Exception:
+            return redirect(url_for("zones.list_zones"))
         return render_template("zones/view.html", zone=zone_meta, records=[], zone_stats=None)
 
     ss = StatsService(current_app.config)
@@ -115,8 +123,11 @@ def edit_zone(zone_name):
             bs.reload()
             flash(f"Zone '{zone_name}' updated.", "success")
             return redirect(url_for("zones.view_zone", zone_name=zone_name))
-        except Exception as e:
-            flash(f"Error updating zone: {e}", "danger")
+        except ValueError as e:
+            flash(str(e), "danger")
+        except Exception:
+            logger.exception("Unexpected error updating zone '%s'", zone_name)
+            flash("An unexpected error occurred while updating the zone.", "danger")
 
     return render_template("zones/edit.html", zone=zone_meta)
 
@@ -131,8 +142,11 @@ def delete_zone(zone_name):
         bs.remove_zone_from_config(zone_name)
         bs.reload()
         flash(f"Zone '{zone_name}' deleted.", "success")
-    except Exception as e:
-        flash(f"Error deleting zone: {e}", "danger")
+    except ValueError as e:
+        flash(str(e), "danger")
+    except Exception:
+        logger.exception("Unexpected error deleting zone '%s'", zone_name)
+        flash("An unexpected error occurred while deleting the zone.", "danger")
     return redirect(url_for("zones.list_zones"))
 
 
@@ -160,8 +174,9 @@ def raw_edit(zone_name):
             return render_template(
                 "zones/raw_edit.html", zone=zone_meta, raw_content=raw_content
             )
-        except Exception as e:
-            flash(f"Error saving zone: {e}", "danger")
+        except Exception:
+            logger.exception("Unexpected error saving raw zone '%s'", zone_name)
+            flash("An unexpected error occurred while saving the zone.", "danger")
             return render_template(
                 "zones/raw_edit.html", zone=zone_meta, raw_content=raw_content
             )
@@ -247,8 +262,7 @@ def import_zone():
                 zone_type=zone_type,
                 paste_content=content,
             )
-        except Exception as e:
-            # Rollback
+        except Exception:
             try:
                 zs.delete_zone(zone_name)
             except Exception:
@@ -257,7 +271,8 @@ def import_zone():
                 bs.remove_zone_from_config(zone_name)
             except Exception:
                 pass
-            flash(f"Error importing zone: {e}", "danger")
+            logger.exception("Unexpected error importing zone '%s'", zone_name)
+            flash("An unexpected error occurred while importing the zone.", "danger")
             return render_template(
                 "zones/import.html",
                 zone_name=zone_name,

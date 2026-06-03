@@ -1,10 +1,14 @@
 import datetime
 import json
+import logging
 import os
 import pathlib
+import random
 import re
 
 import dns.exception
+
+audit_log = logging.getLogger("zonerr.audit")
 import dns.name
 import dns.node
 import dns.rdata
@@ -89,6 +93,12 @@ class ZoneService:
         with open(self.index_path, "w") as f:
             json.dump(data, f, indent=2)
 
+    @staticmethod
+    def _write_file(path: str, content: str) -> None:
+        with open(path, "w") as f:
+            f.write(content)
+        os.chmod(path, 0o640)
+
     def _zone_file(self, zone_name: str) -> str:
         base = pathlib.Path(self.zone_dir).resolve()
         candidate = (base / f"db.{zone_name}").resolve()
@@ -101,7 +111,7 @@ class ZoneService:
     @staticmethod
     def _new_serial():
         today = datetime.date.today().strftime("%Y%m%d")
-        return int(today + "01")
+        return int(today + f"{random.randint(1, 99):02d}")
 
     @staticmethod
     def _bump_serial(current):
@@ -171,9 +181,7 @@ class ZoneService:
         if ns_ip:
             content += f"{ns_short}   {int(default_ttl)}   IN  A  {ns_ip}\n"
 
-        # Write file
-        with open(zone_file, "w") as f:
-            f.write(content)
+        self._write_file(zone_file, content)
 
         # Validate immediately so we don't leave broken zones behind
         try:
@@ -186,9 +194,9 @@ class ZoneService:
                 pass
             raise ValueError(f"Zone file validation failed: {e}")
 
-        # Only save index if it validated
         index[zone_name] = {"type": zone_type, "file": zone_file}
         self._save_index(index)
+        audit_log.info("ZONE_CREATE zone=%s type=%s", zone_name, zone_type)
         
 
     def get_zone_meta(self, zone_name):
@@ -265,6 +273,7 @@ class ZoneService:
             soa_rdataset.add(new_soa_rdata)
 
         self._write_zone_file(zone_name, zone, zone_file, default_ttl)
+        audit_log.info("ZONE_UPDATE zone=%s ns=%s email=%s ttl=%s", zone_name, soa_ns, soa_email, default_ttl)
 
     def delete_zone(self, zone_name):
         index = self._load_index()
@@ -274,6 +283,7 @@ class ZoneService:
                 os.remove(zone_file)
             del index[zone_name]
             self._save_index(index)
+            audit_log.info("ZONE_DELETE zone=%s", zone_name)
         else:
             raise FileNotFoundError(f"Zone '{zone_name}' not found in index.")
 
@@ -343,6 +353,7 @@ class ZoneService:
 
         self._bump_soa(zone)
         self._write_zone_file(zone_name, zone, zone_file, default_ttl)
+        audit_log.info("RECORD_ADD zone=%s name=%s type=%s ttl=%s", zone_name, name, rtype, ttl)
 
     def update_record(self, zone_name, record_index, new_name, new_ttl, rtype, new_value):
         zone_file = self._get_zone_file(zone_name)
@@ -384,6 +395,7 @@ class ZoneService:
 
         self._bump_soa(zone)
         self._write_zone_file(zone_name, zone, zone_file, default_ttl)
+        audit_log.info("RECORD_UPDATE zone=%s index=%s name=%s type=%s", zone_name, record_index, new_name, rtype)
 
     def delete_record(self, zone_name, record_index):
         zone_file = self._get_zone_file(zone_name)
@@ -418,6 +430,7 @@ class ZoneService:
 
         self._bump_soa(zone)
         self._write_zone_file(zone_name, zone, zone_file, default_ttl)
+        audit_log.info("RECORD_DELETE zone=%s index=%s name=%s type=%s", zone_name, record_index, old["name"], old["type"])
 
     # -- internal helpers ----------------------------------------------
 
@@ -500,8 +513,7 @@ class ZoneService:
                     name=name_str, ttl=rdataset.ttl, rdtype=rdtype, rdata=rdata))
 
         lines.append("")
-        with open(zone_file, "w") as f:
-            f.write("\n".join(lines))
+        self._write_file(zone_file, "\n".join(lines))
     
     # -- raw zone file reading/writing ----------------------
 
@@ -524,8 +536,8 @@ class ZoneService:
         except Exception as e:
             raise ValueError(f"Zone file validation failed: {e}")
 
-        with open(zone_file, "w") as f:
-            f.write(content)
+        self._write_file(zone_file, content)
+        audit_log.info("ZONE_RAW_EDIT zone=%s", zone_name)
 
     # -- import zone --------------------------------------
 
@@ -544,11 +556,9 @@ class ZoneService:
         except Exception as e:
             raise ValueError(f"Zone validation failed: {e}")
 
-        # Write zone file
         zone_file = self._zone_file(zone_name)
-        with open(zone_file, "w") as f:
-            f.write(content)
+        self._write_file(zone_file, content)
 
-        # Update index
         index[zone_name] = {"type": zone_type, "file": zone_file}
         self._save_index(index)
+        audit_log.info("ZONE_IMPORT zone=%s type=%s", zone_name, zone_type)
