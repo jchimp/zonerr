@@ -47,17 +47,13 @@ def create_zone():
         try:
             zs.create_zone(zone_name, zone_type, soa_ns, soa_email, int(default_ttl), ns_ip)
             bs.add_zone_to_config(zone_name, zone_type)
-
-            ok, msg = bs.reload()
-            if not ok:
-                raise RuntimeError(f"rndc reload failed: {msg}")
-
-            flash(f"Zone '{zone_name}' created successfully.", "success")
-            return redirect(url_for("zones.view_zone", zone_name=zone_name))
-
         except ValueError as e:
+            # Validation error before or during write — nothing to clean up
             flash(str(e), "danger")
+            return render_template("zones/create.html")
         except Exception:
+            # Write failed — roll back whatever was committed, then re-sync BIND
+            logger.exception("Error writing zone '%s' — rolling back", zone_name)
             try:
                 zs.delete_zone(zone_name)
             except Exception:
@@ -66,8 +62,23 @@ def create_zone():
                 bs.remove_zone_from_config(zone_name)
             except Exception:
                 pass
-            logger.exception("Unexpected error creating zone '%s'", zone_name)
+            bs.reload()  # best-effort re-sync after cleanup
             flash("An unexpected error occurred while creating the zone.", "danger")
+            return render_template("zones/create.html")
+
+        # Zone is on disk and in named.conf.local — now tell BIND about it.
+        # A reload failure doesn't undo a valid zone; user can reload manually.
+        ok, msg = bs.reload()
+        if ok:
+            flash(f"Zone '{zone_name}' created successfully.", "success")
+        else:
+            logger.warning("Zone '%s' created but rndc reload failed: %s", zone_name, msg)
+            flash(
+                f"Zone '{zone_name}' created but BIND reload failed: {msg} — "
+                f"use BIND Status → Reload to activate it.",
+                "warning",
+            )
+        return redirect(url_for("zones.view_zone", zone_name=zone_name))
 
     return render_template("zones/create.html")
 
@@ -245,15 +256,6 @@ def import_zone():
         try:
             zs.import_zone(zone_name, zone_type, content)
             bs.add_zone_to_config(zone_name, zone_type)
-            ok, msg = bs.reload()
-
-            if not ok:
-                flash(f"Zone imported but BIND reload failed: {msg}", "warning")
-            else:
-                flash(f"Zone '{zone_name}' imported successfully.", "success")
-
-            return redirect(url_for("zones.view_zone", zone_name=zone_name))
-
         except ValueError as e:
             flash(str(e), "danger")
             return render_template(
@@ -263,6 +265,7 @@ def import_zone():
                 paste_content=content,
             )
         except Exception:
+            logger.exception("Error writing zone '%s' — rolling back", zone_name)
             try:
                 zs.delete_zone(zone_name)
             except Exception:
@@ -271,7 +274,7 @@ def import_zone():
                 bs.remove_zone_from_config(zone_name)
             except Exception:
                 pass
-            logger.exception("Unexpected error importing zone '%s'", zone_name)
+            bs.reload()  # best-effort re-sync after cleanup
             flash("An unexpected error occurred while importing the zone.", "danger")
             return render_template(
                 "zones/import.html",
@@ -279,5 +282,17 @@ def import_zone():
                 zone_type=zone_type,
                 paste_content=content,
             )
+
+        ok, msg = bs.reload()
+        if ok:
+            flash(f"Zone '{zone_name}' imported successfully.", "success")
+        else:
+            logger.warning("Zone '%s' imported but rndc reload failed: %s", zone_name, msg)
+            flash(
+                f"Zone '{zone_name}' imported but BIND reload failed: {msg} — "
+                f"use BIND Status → Reload to activate it.",
+                "warning",
+            )
+        return redirect(url_for("zones.view_zone", zone_name=zone_name))
 
     return render_template("zones/import.html")
